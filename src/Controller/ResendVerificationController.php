@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 
 #[AsController]
-class ResendVerificationController extends AbstractController
+final class ResendVerificationController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $em,

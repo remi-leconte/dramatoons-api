@@ -8,7 +8,7 @@ use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Address;
 
-class UserMailer
+final class UserMailer
 {
     public function __construct(
         private EntityManagerInterface $em,

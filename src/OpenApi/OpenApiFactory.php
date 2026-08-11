@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\Attribute\MapDecoratorArgument;
 
 // Priorité fixée à -10 pour passer après le bundle Lexik
 #[AsDecorator(decorates: 'api_platform.openapi.factory', priority: -10)]
-class OpenApiFactory implements OpenApiFactoryInterface
+final class OpenApiFactory implements OpenApiFactoryInterface
 {
     public function __construct(
         #[MapDecoratorArgument]

@@ -23,7 +23,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         description: 'Reçoit l\'e-mail du front, cherche l\'utilisateur, génère un token et envoie l\'e-mail de récupération.'
     )
 )]
-class ForgotPassword implements ProcessorInterface
+final class ForgotPassword implements ProcessorInterface
 {
     #[Groups(['user:forgot'])]
     #[Assert\NotBlank(message: 'L\'adresse email est obligatoire.')]

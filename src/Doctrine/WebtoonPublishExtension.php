@@ -9,7 +9,7 @@ use App\Entity\Webtoon;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\SecurityBundle\Security;
 
-class WebtoonPublishExtension implements QueryCollectionExtensionInterface
+final class WebtoonPublishExtension implements QueryCollectionExtensionInterface
 {
     private Security $security;
 

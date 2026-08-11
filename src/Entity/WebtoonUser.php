@@ -37,7 +37,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
     ],
     normalizationContext: ['groups' => ['webtoon_user:read', 'webtoon:read'], 'skip_null_values' => false]
 )]
-class WebtoonUser
+final class WebtoonUser
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

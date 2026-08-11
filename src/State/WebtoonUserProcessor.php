@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use ApiPlatform\Validator\Exception\ValidationException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-class WebtoonUserProcessor implements ProcessorInterface
+final class WebtoonUserProcessor implements ProcessorInterface
 {
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]

@@ -25,7 +25,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         description: 'Reçoit le token du front, cherche l\'utilisateur, valide son email et supprime le token.'
     )
 )]
-class UserVerification implements ProcessorInterface
+final class UserVerification implements ProcessorInterface
 {
     #[Groups(['user:verify'])]
     #[Assert\NotBlank(message: 'Le token est obligatoire.')]

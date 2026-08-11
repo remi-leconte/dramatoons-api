@@ -40,7 +40,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
             securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce compte peut le supprimer.")
     ]
 )]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+final class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -82,17 +82,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'resetToken', length: 255, nullable: true)]
     private ?string $resetToken = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(name: 'searchSortBy', length: 255, nullable: true)]
     #[Groups(['user:read:owner', 'user:write:owner'])]
-    private ?string $sort = null;
+    private ?string $searchSortBy = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(name: 'searchSortOrder', length: 255, nullable: true)]
     #[Groups(['user:read:owner', 'user:write:owner'])]
-    private ?string $states = null;
+    private ?string $searchSortOrder = null;
 
-    #[ORM\Column(name: 'nbResult', nullable: true)]
+    #[ORM\Column(name: 'searchStatus', length: 255, nullable: true)]
     #[Groups(['user:read:owner', 'user:write:owner'])]
-    private ?int $nbResult = null;
+    private ?array $searchStatus = null;
+
+    #[ORM\Column(name: 'searchItemsPerPage', nullable: true)]
+    #[Groups(['user:read:owner', 'user:write:owner'])]
+    private ?int $searchItemsPerPage = null;
 
     #[ORM\Column(name: 'rememberToken', length: 64, nullable: true)]
     #[Groups(['user:read:owner', 'user:write:owner'])]
@@ -245,38 +249,50 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getSort(): ?string
+    public function getSearchSortBy(): ?string
     {
-        return $this->sort;
+        return $this->searchSortBy;
     }
 
-    public function setSort(?string $sort): static
+    public function setSearchSortBy(?string $searchSortBy): static
     {
-        $this->sort = $sort;
+        $this->searchSortBy = $searchSortBy;
 
         return $this;
     }
 
-    public function getStates(): ?string
+    public function getSearchSortOrder(): ?string
     {
-        return $this->states;
+        return $this->searchSortOrder;
     }
 
-    public function setStates(?string $states): static
+    public function setSearchSortOrder(?string $searchSortOrder): static
     {
-        $this->states = $states;
+        $this->searchSortOrder = $searchSortOrder;
 
         return $this;
     }
 
-    public function getNbResult(): ?int
+    public function getSearchStatus(): ?array
     {
-        return $this->nbResult;
+        return $this->searchStatus;
     }
 
-    public function setNbResult(?int $nbResult): static
+    public function setSearchStatus(?array $searchStatus): static
     {
-        $this->nbResult = $nbResult;
+        $this->searchStatus = $searchStatus;
+
+        return $this;
+    }
+
+    public function getSearchItemsPerPage(): ?int
+    {
+        return $this->searchItemsPerPage;
+    }
+
+    public function setSearchItemsPerPage(?int $searchItemsPerPage): static
+    {
+        $this->searchItemsPerPage = $searchItemsPerPage;
 
         return $this;
     }

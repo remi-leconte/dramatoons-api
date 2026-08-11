@@ -1,5 +1,6 @@
 .vscode
 .env
+.devcontainer/
 
 ###> symfony/framework-bundle ###
 /.env.local

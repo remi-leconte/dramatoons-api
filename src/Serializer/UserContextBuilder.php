@@ -10,7 +10,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 use Symfony\Component\DependencyInjection\Attribute\MapDecoratorArgument;
 
 #[AsDecorator(decorates: 'api_platform.serializer.context_builder')]
-class UserContextBuilder implements SerializerContextBuilderInterface
+final class UserContextBuilder implements SerializerContextBuilderInterface
 {
     public function __construct(
         #[MapDecoratorArgument]

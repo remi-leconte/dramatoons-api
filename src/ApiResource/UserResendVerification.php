@@ -24,7 +24,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         description: 'Reçoit l\'e-mail du front, cherche l\'utilisateur, génère un nouveau token et renvoie l\'e-mail.'
     )
 )]
-class UserResendVerification implements ProcessorInterface
+final class UserResendVerification implements ProcessorInterface
 {
     #[Groups(['user:resend'])]
     #[Assert\NotBlank(message: 'L\'adresse email est obligatoire.')]

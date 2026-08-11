@@ -6,7 +6,7 @@ use App\Entity\User;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\AuthenticationSuccessEvent;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 
-class AuthenticationSuccessListener
+final class AuthenticationSuccessListener
 {
     #[AsEventListener(event: 'lexik_jwt_authentication.on_authentication_success')]
     public function onAuthenticationSuccessResponse(AuthenticationSuccessEvent $event): void
@@ -21,7 +21,13 @@ class AuthenticationSuccessListener
         $data['user'] = [
             'id' => $user->getId(),
             'login' => $user->getUserIdentifier(),
-            'roles' => $user->getRoles()
+            'roles' => $user->getRoles(),
+            'searchParameters' => [
+                'sortBy' => $user->getSearchSortBy(),
+                'sortOrder' => $user->getSearchSortOrder(),
+                'status' => $user->getSearchStatus(),
+                'itemsPerPage' => $user->getSearchItemsPerPage()
+            ]
         ];
 
         $event->setData($data);

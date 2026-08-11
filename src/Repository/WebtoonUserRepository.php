@@ -9,7 +9,7 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * @extends ServiceEntityRepository<WebtoonUser>
  */
-class WebtoonUserRepository extends ServiceEntityRepository
+final class WebtoonUserRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {

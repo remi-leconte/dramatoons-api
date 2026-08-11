@@ -26,7 +26,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         description: 'Reçoit le token et le nouveau mot de passe, vérifie la validité, et met à jour l\'utilisateur.'
     )
 )]
-class ResetPassword implements ProcessorInterface
+final class ResetPassword implements ProcessorInterface
 {
     #[Groups(['user:reset_password'])]
     #[Assert\NotBlank(message: 'Le token est obligatoire.')]

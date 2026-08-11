@@ -3,45 +3,46 @@
 namespace App\Entity;
 
 use App\State\WebtoonProvider;
+use App\State\WebtoonProcessor;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use App\Repository\WebtoonRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: WebtoonRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
         // règles spécifique de la récupération de la collection dans src/Doctrine/WebtoonPublishExtension.php
         new GetCollection(
             normalizationContext: ['groups' => ['webtoon:read']],
             provider: WebtoonProvider::class),
-        // new Get(normalizationContext: ['groups' => ['webtoon:read']]), // pas d'utilité pour l'instant
-        new Post(denormalizationContext: ['groups' => ['webtoon:write']]),
         new Post(
             denormalizationContext: ['groups' => ['webtoon:write']],
+            normalizationContext: ['groups' => ['webtoon:read']],
             security: "is_granted('ROLE_MODO')",
-            securityMessage: "Seuls les administrateurs et les modérateurs peuvent créer un Webtoon."
-        ),
-        new Put(
-            denormalizationContext: ['groups' => ['webtoon:write', 'webtoon:write:owner']],
-            security: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_MODO') and object.getCreator() == user)",
-            securityMessage: "Seul un administrateur ou le modérateur propriétaire de ce Webtoon peut le modifier."
-        ),
+            securityMessage: "Seuls les administrateurs et les modérateurs peuvent créer un Webtoon.",
+            processor: WebtoonProcessor::class),
+        new Patch(denormalizationContext: ['groups' => ['webtoon:write']],
+            normalizationContext: ['groups' => ['webtoon:read']],
+            security: "is_granted('ROLE_ADMIN') or object == user",
+            securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce webtoon peut le modifier."),
         new Delete(
+            normalizationContext: ['groups' => ['webtoon:read']],
             security: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_MODO') and object.getCreator() == user)",
             securityMessage: "Seul un administrateur ou le modérateur propriétaire de ce Webtoon peut le supprimer."
         )
     ]
 )]
-class Webtoon
+final class Webtoon
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -55,7 +56,8 @@ class Webtoon
 
     #[ORM\ManyToOne(inversedBy: 'createdWebtoons')]
     #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
-    private ?User $creator = null; // personnes ? je ne vois pas l'utilité pour l'instant
+    #[Groups(['webtoon:read', 'webtoon:write'])]
+    private ?User $creator = null; // tous
 
     #[ORM\Column(length: 255)]
     #[Groups(['webtoon:read', 'webtoon:write'])]
@@ -63,23 +65,23 @@ class Webtoon
 
     #[ORM\Column(length: 255)]
     #[Groups(['webtoon:read', 'webtoon:write'])]
-    private ?string $type = null; // tous mais il faudrait le renommé en etat
+    private ?string $status = null; // tous
 
     #[ORM\Column]
     #[Groups(['webtoon:read', 'webtoon:write'])]
     private ?int $chapter = null; // tous
 
-    #[ORM\Column]
+    #[ORM\Column(type: 'datetime_immutable')]
     #[Groups(['webtoon:read'])]
-    private ?\DateTime $created = null; // tous lecture
+    private ?\DateTimeInterface $created = null; // tous lecture
 
-    #[ORM\Column]
+    #[ORM\Column(type: 'datetime_immutable')]
     #[Groups(['webtoon:read'])]
-    private ?\DateTime $updated = null; // tous lecture
+    private ?\DateTimeInterface $updated = null; // tous lecture
 
     #[ORM\Column]
     #[Groups(['webtoon:read', 'webtoon:write:owner'])]
-    private ?bool $publish = null; // uniquement le propriétaire et l'admin
+    private ?bool $publish = false; // uniquement le propriétaire et l'admin
 
     #[ORM\Column(length: 255)]
     #[Groups(['webtoon:read', 'webtoon:write'])]
@@ -90,7 +92,7 @@ class Webtoon
 
     #[ORM\Column(name: 'lastVerification', type: Types::DATE_MUTABLE, nullable: true)]
     #[Groups(['webtoon:read'])]
-    private ?\DateTime $lastVerification = null; //tous lecture
+    private ?\DateTimeInterface $lastVerification = null; // tous lecture
 
     /**
      * @var Collection<int, WebtoonUser>
@@ -104,6 +106,9 @@ class Webtoon
     public function __construct()
     {
         $this->readers = new ArrayCollection();
+
+        $this->created = new \DateTimeImmutable();
+        $this->updated = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -119,6 +124,7 @@ class Webtoon
     public function setTitle(string $title): static
     {
         $this->title = $title;
+        $this->slug = (new AsciiSlugger())->slug($title)->lower()->toString();
 
         return $this;
     }
@@ -140,21 +146,14 @@ class Webtoon
         return $this->slug;
     }
 
-    public function setSlug(string $slug): static
+    public function getStatus(): ?string
     {
-        $this->slug = $slug;
-
-        return $this;
+        return $this->status;
     }
 
-    public function getType(): ?string
+    public function setStatus(string $status): static
     {
-        return $this->type;
-    }
-
-    public function setType(string $type): static
-    {
-        $this->type = $type;
+        $this->status = $status;
 
         return $this;
     }
@@ -171,28 +170,34 @@ class Webtoon
         return $this;
     }
 
-    public function getCreated(): ?\DateTime
+    public function getCreated(): ?\DateTimeInterface
     {
         return $this->created;
     }
 
-    public function setCreated(\DateTime $created): static
+    public function setCreated(\DateTimeInterface $created): static
     {
         $this->created = $created;
 
         return $this;
     }
 
-    public function getUpdated(): ?\DateTime
+    public function getUpdated(): ?\DateTimeInterface
     {
         return $this->updated;
     }
 
-    public function setUpdated(\DateTime $updated): static
+    public function setUpdated(\DateTimeInterface $updated): static
     {
         $this->updated = $updated;
 
         return $this;
+    }
+
+    #[ORM\PreUpdate]
+    public function onPreUpdate(): void
+    {
+        $this->updated = new \DateTimeImmutable();
     }
 
     public function isPublish(): ?bool
@@ -231,12 +236,12 @@ class Webtoon
         return $this;
     }
 
-    public function getLastVerification(): ?\DateTime
+    public function getLastVerification(): ?\DateTimeInterface
     {
         return $this->lastVerification;
     }
 
-    public function setLastVerification(?\DateTime $lastVerification): static
+    public function setLastVerification(?\DateTimeInterface $lastVerification): static
     {
         $this->lastVerification = $lastVerification;
 
