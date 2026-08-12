@@ -22,7 +22,7 @@ WORKDIR /var/www/html
 
 FROM base AS dev
 
-RUN apk add --no-cache git unzip $PHPIZE_DEPS linux-headers \
+RUN apk add --no-cache git unzip openssh $PHPIZE_DEPS linux-headers \
     && pecl install xdebug \
     && docker-php-ext-enable xdebug \
     && apk del $PHPIZE_DEPS linux-headers
