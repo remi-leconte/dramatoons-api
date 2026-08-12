@@ -2,7 +2,7 @@
 
 namespace App\State;
 
-use ApiPlatform\Doctrine\Orm\Paginator;
+use ApiPlatform\State\Pagination\TraversablePaginator;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Entity\User;
@@ -15,6 +15,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+
 
 final class WebtoonProvider implements ProviderInterface
 {
@@ -152,10 +153,11 @@ final class WebtoonProvider implements ProviderInterface
             }
         }
 
-        return new \ApiPlatform\State\Pagination\ArrayPaginator(
-            $webtoons,
-            ($page - 1) * $limit,
-            $limit
+        return new TraversablePaginator(
+            new \ArrayIterator($webtoons),
+            (float) $page,
+            (float) $limit,
+            (float) $cachedData['totalItems']
         );
     }
 }

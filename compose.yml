@@ -9,7 +9,7 @@ services:
       - api_internal_network
 
   nginx:
-    image: nginx:stable-alpine
+    image: nginx:1.31.3-alpine3.24
     restart: unless-stopped
     depends_on:
       - php

@@ -68,7 +68,8 @@ RUN { \
 
 COPY --from=builder /var/www/html /var/www/html
 
-RUN chown -R www-data:www-data /var/www/html/var
+
+RUN mkdir -p /var/www/html/var && chown -R www-data:www-data /var/www/html/var
 
 USER www-data
 
