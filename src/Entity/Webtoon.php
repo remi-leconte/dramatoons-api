@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\State\WebtoonProvider;
 use App\State\WebtoonProcessor;
+use App\State\WebtoonRemoveProcessor;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
@@ -34,12 +35,13 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new Patch(denormalizationContext: ['groups' => ['webtoon:write']],
             normalizationContext: ['groups' => ['webtoon:read']],
             security: "is_granted('ROLE_ADMIN') or object == user",
-            securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce webtoon peut le modifier."),
+            securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce webtoon peut le modifier.",
+            processor: WebtoonProcessor::class),
         new Delete(
             normalizationContext: ['groups' => ['webtoon:read']],
             security: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_MODO') and object.getCreator() == user)",
-            securityMessage: "Seul un administrateur ou le modérateur propriétaire de ce Webtoon peut le supprimer."
-        )
+            securityMessage: "Seul un administrateur ou le modérateur propriétaire de ce Webtoon peut le supprimer.",
+            processor: WebtoonRemoveProcessor::class)
     ]
 )]
 final class Webtoon

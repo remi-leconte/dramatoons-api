@@ -1,47 +1,35 @@
 services:
   php:
-    build: ./docker/php
-#    extra_hosts:
-#      - "host.docker.internal:host-gateway"
-    container_name: api_php
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile
     restart: unless-stopped
-    environment:
-     - XDEBUG_CONFIG=client_host=127.0.0.1
-    volumes:
-      - .:/var/www/html
     networks:
       - shared_database_network
       - api_internal_network
 
   nginx:
     image: nginx:stable-alpine
-    container_name: api_nginx
     restart: unless-stopped
-    ports:
-      - "8081:80"
-    volumes:
-      - .:/var/www/html
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - php
     networks:
       - api_internal_network
 
-###> symfony/mailer ###
-  mailer:
-    image: axllent/mailpit
-    ports:
-      - "1025"
-      - "8025"
-    environment:
-      MP_SMTP_AUTH_ACCEPT_ANY: 1
-      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+  redis:
+    image: redis:8.10.0-alpine3.23
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
     networks:
       - api_internal_network
-###< symfony/mailer ###
+
+volumes:
+  redis_data:
 
 networks:
   shared_database_network:
     external: true
   api_internal_network:
     name: shared_api_network
+    external: true
