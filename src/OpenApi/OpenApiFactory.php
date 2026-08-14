@@ -9,7 +9,6 @@ use ApiPlatform\OpenApi\Model\RequestBody;
 use ApiPlatform\OpenApi\OpenApi;
 use ArrayObject;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
-use Symfony\Component\DependencyInjection\Attribute\MapDecoratorArgument;
 
 // Priorité fixée à -10 pour passer après le bundle Lexik et pouvoir modifier sa documentation
 #[AsDecorator(decorates: 'api_platform.openapi.factory', priority: -10)]

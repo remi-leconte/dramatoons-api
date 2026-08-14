@@ -61,8 +61,6 @@ final class UserVerification implements ProcessorInterface
         return $user;
     }
 
-    // --- Getters et Setters ---
-
     public function getToken(): ?string
     {
         return $this->token;

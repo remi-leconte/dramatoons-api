@@ -15,7 +15,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource]
 #[Post(
     uriTemplate: '/users/resend-verification',
-    processor: UserResendVerification::class, // 💡 Il s'appelle lui-même comme processeur
+    processor: UserResendVerification::class,
     denormalizationContext: ['groups' => ['user:resend']],
     normalizationContext: ['groups' => ['user:read']],
     openapi: new \ApiPlatform\OpenApi\Model\Operation(
@@ -31,7 +31,6 @@ final class UserResendVerification implements ProcessorInterface
     #[Assert\Email(message: 'L\'adresse email n\'est pas valide.')]
     private ?string $email = null;
 
-    // 💡 Les services sont mis à null par défaut pour que API Platform puisse l'utiliser en DTO
     public function __construct(
         private ?UserRepository $userRepository = null,
         private ?UserMailer $userMailer = null
@@ -42,26 +41,20 @@ final class UserResendVerification implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        // 1. Chercher l'utilisateur avec l'email reçu
         $user = $this->userRepository->findOneBy(['email' => $data->getEmail()]);
 
-        // 2. Sécurité : On ne lève pas de NotFoundException pour éviter le User Enumeration
         if (!$user) {
             return $data; 
         }
 
-        // 3. Vérifier si l'utilisateur n'est pas déjà validé
         if ($user->isVerified()) {
             throw new BadRequestHttpException("Cette adresse email est déjà validée.");
         }
 
-        // 4. Déclencher le renvoi via le service
         $this->userMailer->sendVerificationEmail($user);
 
         return $data;
     }
-
-    // --- Getters et Setters ---
 
     public function getEmail(): ?string
     {

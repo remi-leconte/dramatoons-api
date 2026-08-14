@@ -7,13 +7,11 @@ use App\Entity\User;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
-use Symfony\Component\DependencyInjection\Attribute\MapDecoratorArgument;
 
 #[AsDecorator(decorates: 'api_platform.serializer.context_builder')]
 final class UserContextBuilder implements SerializerContextBuilderInterface
 {
     public function __construct(
-        #[MapDecoratorArgument]
         private SerializerContextBuilderInterface $inner,
         private Security $security
     ) {}

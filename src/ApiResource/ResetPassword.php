@@ -48,34 +48,26 @@ final class ResetPassword implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        // 1. Chercher l'utilisateur via le token
         $user = $this->userRepository->findOneBy(['resetToken' => $data->getToken()]);
 
         if (!$user) {
             throw new NotFoundHttpException("Ce jeton de réinitialisation est invalide.");
         }
 
-        // 2. Vérifier l'expiration du token
         $now = new \DateTimeImmutable();
         if ($user->getResetTokenExpiration() < $now) {
             throw new BadRequestHttpException("Ce jeton de réinitialisation a expiré.");
         }
 
-        // 3. Chiffrer et attribuer le nouveau mot de passe
         $hashedPassword = $this->passwordHasher->hashPassword($user, $data->getPassword());
         $user->setPassword($hashedPassword);
-
-        // 4. Nettoyer le token pour qu'il ne soit plus réutilisable
         $user->setResetToken(null);
         $user->setResetTokenExpiration(null);
 
-        // 5. Sauvegarder en BDD
         $this->entityManager->flush();
 
         return $data;
     }
-
-    // --- Getters et Setters ---
 
     public function getToken(): ?string
     {

@@ -40,21 +40,17 @@ final class ForgotPassword implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        // 1. Chercher l'utilisateur avec l'email reçu
         $user = $this->userRepository->findOneBy(['email' => $data->getEmail()]);
 
-        // 2. Sécurité : On ne dit pas si l'email existe ou non pour éviter le User Enumeration
         if (!$user) {
             return $data;
         }
 
-        // 3. Déclencher l'envoi de l'email de récupération via le service
         $this->userMailer->sendForgotPasswordEmail($user);
 
         return $data;
     }
 
-    // --- Getters et Setters ---
 
     public function getEmail(): ?string
     {
