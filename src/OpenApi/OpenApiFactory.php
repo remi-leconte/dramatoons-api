@@ -11,18 +11,17 @@ use ArrayObject;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 use Symfony\Component\DependencyInjection\Attribute\MapDecoratorArgument;
 
-// Priorité fixée à -10 pour passer après le bundle Lexik
+// Priorité fixée à -10 pour passer après le bundle Lexik et pouvoir modifier sa documentation
 #[AsDecorator(decorates: 'api_platform.openapi.factory', priority: -10)]
 final class OpenApiFactory implements OpenApiFactoryInterface
 {
     public function __construct(
-        #[MapDecoratorArgument]
-        private OpenApiFactoryInterface $factory
+        private OpenApiFactoryInterface $inner
     ) {}
 
     public function __invoke(array $context = []): OpenApi
     {
-        $openApi = $this->factory->__invoke($context);
+        $openApi = $this->inner->__invoke($context);
 
         // Permet de se connecter via swagger (via le bouton "Authorize")
         $openApi = $openApi->withSecurity([['JWT' => []]]);
@@ -42,7 +41,7 @@ final class OpenApiFactory implements OpenApiFactoryInterface
             }
         }
 
-        // Route /token/refresh
+        // Modification de la documentation pour la route /token/refresh
         $refreshPathItem = new PathItem(
             post: new Operation(
                 operationId: 'postRefreshToken',
