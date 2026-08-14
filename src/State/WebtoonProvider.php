@@ -46,39 +46,9 @@ final class WebtoonProvider implements ProviderInterface
             return $this->webtoonRepository->findFilteredIdsForUser($user, $page, $limit);
         });
 
-        // On réhydrate les entités Doctrine et on reconstruit le Paginator
         $webtoons = [];
         if (!empty($cachedData['ids'])) {
-            $fetched = $this->webtoonRepository->findBy(['id' => $cachedData['ids']]);
-            
-            // On préserve l'ordre initial du tri
-            $indexed = [];
-            foreach ($fetched as $w) {
-                $indexed[$w->getId()] = $w;
-            }
-            foreach ($cachedData['ids'] as $id) {
-                if (isset($indexed[$id])) {
-                    $webtoons[] = $indexed[$id];
-                }
-            }
-
-            if ($user) {
-                $progressions = $this->webtoonUserRepository->findBy([
-                    'reader' => $user,
-                    'webtoon' => $cachedData['ids']
-                ]);
-
-                $progressByWebtoon = [];
-                foreach ($progressions as $progress) {
-                    $progressByWebtoon[$progress->getWebtoon()->getId()] = $progress;
-                }
-
-                foreach ($webtoons as $webtoon) {
-                    if (isset($progressByWebtoon[$webtoon->getId()])) {
-                        $webtoon->setUserProgress($progressByWebtoon[$webtoon->getId()]);
-                    }
-                }
-            }
+            $webtoons = $this->webtoonRepository->findByIdsWithUserProgress($cachedData['ids'], $user);
         }
 
         return new TraversablePaginator(
