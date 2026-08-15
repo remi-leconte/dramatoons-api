@@ -1,6 +1,7 @@
 .vscode
 .env
 .devcontainer/
+/public/upload/cover/*
 
 ###> symfony/framework-bundle ###
 /.env.local

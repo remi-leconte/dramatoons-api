@@ -4,8 +4,6 @@ services:
       context: .
       dockerfile: ./docker/php/Dockerfile
     restart: unless-stopped
-    volumes:
-      - uploads_data:/var/www/html/public/upload
     networks:
       - shared_database_network
       - api_internal_network
@@ -15,8 +13,6 @@ services:
     restart: unless-stopped
     depends_on:
       - php
-    volumes:
-      - uploads_data:/var/www/html/public/upload
     networks:
       - api_internal_network
 
