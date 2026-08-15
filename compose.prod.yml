@@ -9,6 +9,7 @@ services:
       - APP_DEBUG=0
     volumes:
       - uploads_data:/var/www/html/public/upload
+      - ./config/jwt:/var/www/html/config/jwt
 
   nginx:
     ports:
