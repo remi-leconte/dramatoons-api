@@ -20,12 +20,11 @@ final class WebtoonPublishExtension implements QueryCollectionExtensionInterface
 
     public function applyToCollection(QueryBuilder $queryBuilder, QueryNameGeneratorInterface $queryNameGenerator, string $resourceClass, ?Operation $operation = null, array $context = []): void
     {
-        // On cible uniquement l'entité Webtoon
         if (Webtoon::class !== $resourceClass) {
             return;
         }
 
-        // RÈGLE 1 : Les Admin peuvent voir TOUS les Webtoons
+        // RÈGLE 1 : Les Admin peuvent voir tous les Webtoons
         if ($this->security->isGranted('ROLE_ADMIN')) {
             return;
         }
@@ -35,7 +34,7 @@ final class WebtoonPublishExtension implements QueryCollectionExtensionInterface
 
         // RÈGLE 2 : Si l'utilisateur est connecté (et non-admin)
         if ($user) {
-            // Il voit les Webtoons publiés OU ses propres Webtoons dépubliés
+            // Il voit les Webtoons publiés ou ses propres Webtoons dépubliés
             $queryBuilder->andWhere(
                 $queryBuilder->expr()->orX(
                     sprintf('%s.publish = :publish', $rootAlias),
@@ -45,7 +44,7 @@ final class WebtoonPublishExtension implements QueryCollectionExtensionInterface
             $queryBuilder->setParameter('publish', true);
             $queryBuilder->setParameter('current_user', $user);
         } else {
-            // RÈGLE 3 : Les utilisateurs non connectés ne voient QUE les Webtoons publiés
+            // RÈGLE 3 : Les utilisateurs non connectés ne voient que les Webtoons publiés
             $queryBuilder->andWhere(sprintf('%s.publish = :publish', $rootAlias))
                          ->setParameter('publish', true);
         }

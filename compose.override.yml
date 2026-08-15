@@ -31,4 +31,4 @@ services:
 
   redis:
     ports:
-      - "127.0.0.1:6379:6379" # Accessible uniquement depuis 127.0.0.1 en dev si nécessaire
+      - "127.0.0.1:6379:6379"
