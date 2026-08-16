@@ -11,15 +11,19 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use App\Repository\WebtoonRepository;
+use App\Naming\WebtoonCoverNamer;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[ORM\Entity(repositoryClass: WebtoonRepository::class)]
 #[ORM\HasLifecycleCallbacks]
+#[Vich\Uploadable]
 #[ApiResource(
     operations: [
         // règles spécifique de la récupération de la collection dans src/Doctrine/WebtoonPublishExtension.php
@@ -87,7 +91,10 @@ final class Webtoon
 
     #[ORM\Column(length: 255)]
     #[Groups(['webtoon:read', 'webtoon:write'])]
-    private ?string $image = null; // tous
+    private ?string $image = 'defaut.jpg'; // tous
+
+    #[Vich\UploadableField(mapping: 'webtoon_covers', fileNameProperty: 'image')]
+    private ?File $imageFile = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $comment = null; // ignore
@@ -219,9 +226,24 @@ final class Webtoon
         return $this->image;
     }
 
-    public function setImage(string $image): static
+    public function setImage(?string $image): static
     {
         $this->image = $image;
+
+        return $this;
+    }
+
+    public function getImageFile(): ?File
+    {
+        return $this->imageFile;
+    }
+
+    public function setImageFile(?File $imageFile = null): static
+    {
+        $this->imageFile = $imageFile;
+        if (null !== $imageFile) {
+            $this->updated = new \DateTimeImmutable();
+        }
 
         return $this;
     }

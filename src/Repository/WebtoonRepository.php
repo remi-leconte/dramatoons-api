@@ -71,17 +71,18 @@ final class WebtoonRepository extends ServiceEntityRepository
             ->where('w.id IN (:ids)') // ne respectera pas forcement l'ordre lors de la récupération
             ->setParameter('ids', $ids);
 
-        if ($user instanceof User) {
-            $qb->leftJoin('w.readers', 'wu', 'WITH', 'wu.reader = :user')
-            ->addSelect('wu')
-            ->setParameter('user', $user);
-        }
-
+        /** @var Webtoon[] $fetched */
         $fetched = $qb->getQuery()->getResult();
 
-        // Rétablissement de l'ordre exact demandé par $ids
+        // Rétablissement de l'ordre exact demandé par $ids & récupération de la progression
         $indexed = [];
         foreach ($fetched as $w) {
+            if ($user instanceof User) {
+                $progress = $w->getReaders()->first() ?: null;
+                if ($progress) {
+                    $w->setUserProgress($progress);
+                }
+            }
             $indexed[$w->getId()] = $w;
         }
 
