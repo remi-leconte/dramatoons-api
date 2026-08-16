@@ -118,7 +118,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var Collection<int, WebtoonUser>
      */
-    #[ORM\OneToMany(targetEntity: WebtoonUser::class, mappedBy: 'reader')]
+    #[ORM\OneToMany(mappedBy: 'reader', targetEntity: WebtoonUser::class, cascade: ['remove'], orphanRemoval: true)]
     private Collection $readWebtoons;
 
     public function __construct()

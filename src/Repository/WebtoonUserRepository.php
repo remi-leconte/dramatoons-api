@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\WebtoonUser;
+use App\Entity\Webtoon;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -16,28 +17,30 @@ final class WebtoonUserRepository extends ServiceEntityRepository
         parent::__construct($registry, WebtoonUser::class);
     }
 
-    //    /**
-    //     * @return WebtoonUser[] Returns an array of WebtoonUser objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('w')
-    //            ->andWhere('w.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('w.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    public function updateWebtoonStats(Webtoon $webtoon): void
+    {
+        $stats = $this->createQueryBuilder('wu')
+            ->select(
+                'AVG(wu.rate) as avgRating',
+                'SUM(CASE WHEN (wu.state IS NOT NULL AND wu.state != :breakState) OR wu.rate IS NOT NULL THEN 1 ELSE 0 END) as readersCount'
+            )
+            ->where('wu.webtoon = :webtoon')
+            ->setParameter('webtoon', $webtoon)
+            ->setParameter('breakState', 'break')
+            ->getQuery()
+            ->getSingleResult();
 
-    //    public function findOneBySomeField($value): ?WebtoonUser
-    //    {
-    //        return $this->createQueryBuilder('w')
-    //            ->andWhere('w.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        $avg = $stats['avgRating'] !== null ? round((float) $stats['avgRating'], 1) : null;
+        $count = (int) ($stats['readersCount'] ?? 0);
+
+        $this->getEntityManager()->createQuery('
+            UPDATE App\Entity\Webtoon w 
+            SET w.averageRating = :avg, w.readersCount = :count 
+            WHERE w.id = :id
+        ')
+        ->setParameter('avg', $avg)
+        ->setParameter('count', $count)
+        ->setParameter('id', $webtoon->getId())
+        ->execute();
+    }
 }

@@ -7,20 +7,16 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Entity\User;
 use App\Repository\WebtoonRepository;
-use App\Repository\WebtoonUserRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 
 final class WebtoonProvider implements ProviderInterface
 {
     public function __construct(
         private WebtoonRepository $webtoonRepository,
-        private WebtoonUserRepository $webtoonUserRepository,
         private Security $security,
-        #[Autowire(service: 'cache.redis_tag_aware')]
         private TagAwareCacheInterface $cache
     ) {}
 
@@ -40,7 +36,6 @@ final class WebtoonProvider implements ProviderInterface
         $cacheKey = sprintf('webtoons_u%s_p%d_l%d_st%s_sb%s_so%s', $userId, $page, $limit, md5($searchStatus), $sortBy, $sortOrder);
 
         $cachedData = $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $page, $limit) {
-            $item->expiresAfter(3600);
             $item->tag(['webtoons_list', 'user_' . ($user ? $user->getId() : 'anon')]);
 
             return $this->webtoonRepository->findFilteredIdsForUser($user, $page, $limit);

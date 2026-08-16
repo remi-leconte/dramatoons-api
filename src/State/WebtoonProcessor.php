@@ -39,13 +39,12 @@ final class WebtoonProcessor implements ProcessorInterface
                 $data->setPublish(true);
             } 
             elseif ($this->security->isGranted('ROLE_MODO')) {
-                // On vérifie s'il est bien le créateur du webtoon
                 $isCreator = $data->getCreator() === $user;
                 
                 if ($isCreator) {
                     $data->setPublish(true);
                 } else {
-                    $data->setPublish(false); // Sécurité
+                    $data->setPublish(false);
                 }
             } 
             else {

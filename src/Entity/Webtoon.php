@@ -7,11 +7,11 @@ use App\State\WebtoonProcessor;
 use App\State\WebtoonRemoveProcessor;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use App\Repository\WebtoonRepository;
-use App\Naming\WebtoonCoverNamer;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -30,6 +30,7 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
         new GetCollection(
             normalizationContext: ['groups' => ['webtoon:read']],
             provider: WebtoonProvider::class),
+        new Get(normalizationContext: ['groups' => ['webtoon:read']]),
         new Post(
             denormalizationContext: ['groups' => ['webtoon:write']],
             normalizationContext: ['groups' => ['webtoon:read']],
@@ -103,6 +104,13 @@ final class Webtoon
     #[Groups(['webtoon:read'])]
     private ?\DateTimeInterface $lastVerification = null; // tous lecture
 
+    #[ORM\Column(type: 'float', nullable: true)]
+    #[Groups(['webtoon:read'])]
+    private ?float $averageRating = null;
+
+    #[ORM\Column(type: 'integer')]
+    #[Groups(['webtoon:read'])]
+    private int $readersCount = 0;
     /**
      * @var Collection<int, WebtoonUser>
      */
@@ -272,6 +280,30 @@ final class Webtoon
         return $this;
     }
 
+    public function getAverageRating(): ?float
+    {
+        return $this->averageRating;
+    }
+
+    public function setAverageRating(?float $averageRating): static
+    {
+        $this->averageRating = $averageRating;
+
+        return $this;
+    }
+
+    public function getReadersCount(): int
+    {
+        return $this->readersCount;
+    }
+
+    public function setReadersCount(int $readersCount): static
+    {
+        $this->readersCount = $readersCount;
+
+        return $this;
+    }
+
     /**
      * @return Collection<int, WebtoonUser>
      */
@@ -311,38 +343,5 @@ final class Webtoon
     {
         $this->userProgress = $userProgress;
         return $this;
-    }
-    
-    #[Groups(['webtoon:read'])]
-    public function getReadersCount(): int
-    {
-        $count = 0;
-        foreach ($this->readers as $webtoonUser) {
-            if (($webtoonUser->getState() !== null && $webtoonUser->getState() !== "break") || $webtoonUser->getRate() != null) {
-                $count++;
-            }
-        }
-
-        return $count;
-    }
-
-    #[Groups(['webtoon:read'])]
-    public function getAverageRating(): ?float
-    {
-        $totalRates = 0;
-        $count = 0;
-
-        foreach ($this->readers as $webtoonUser) {
-            if ($webtoonUser->getRate() !== null) {
-                $totalRates += $webtoonUser->getRate();
-                $count++;
-            }
-        }
-
-        if ($count === 0) {
-            return null;
-        }
-
-        return round($totalRates / $count, 1);
     }
 }

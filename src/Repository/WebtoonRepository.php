@@ -36,10 +36,7 @@ final class WebtoonRepository extends ServiceEntityRepository
 
             match ($sortBy) {
                 'title' => $qb->orderBy('w.title', $sortOrder),
-                'rating' => $qb->leftJoin('w.readers', 'wu_avg')
-                            ->addSelect('AVG(wu_avg.rate) AS HIDDEN avg_rate')
-                            ->groupBy('w.id')
-                            ->orderBy('avg_rate', $sortOrder),
+                'rating' => $qb->orderBy('w.averageRating', $sortOrder),
                 'user_rating' => $qb->leftJoin('w.readers', 'wu_user', 'WITH', 'wu_user.reader = :user')
                                 ->addSelect('wu_user.rate AS HIDDEN user_rate')
                                 ->setParameter('user', $user)
@@ -70,6 +67,12 @@ final class WebtoonRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('w')
             ->where('w.id IN (:ids)') // ne respectera pas forcement l'ordre lors de la récupération
             ->setParameter('ids', $ids);
+
+        if ($user instanceof User) {
+            $qb->leftJoin('w.readers', 'wu', 'WITH', 'wu.reader = :user')
+            ->addSelect('wu')
+            ->setParameter('user', $user);
+        }
 
         /** @var Webtoon[] $fetched */
         $fetched = $qb->getQuery()->getResult();
