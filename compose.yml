@@ -19,14 +19,9 @@ services:
   redis:
     image: redis:8.10.0-alpine3.23
     restart: unless-stopped
-    volumes:
-      - redis_data:/data
     networks:
       - api_internal_network
 
-volumes:
-  redis_data:
-  uploads_data:
 
 networks:
   shared_database_network:

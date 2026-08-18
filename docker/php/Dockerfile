@@ -57,6 +57,18 @@ FROM base AS prod
 
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
+# Configuration Sécurité & Limites PHP
+RUN { \
+    echo 'expose_php = Off'; \
+    echo 'memory_limit = 512M'; \
+    echo 'upload_max_filesize = 1M'; \
+    echo 'post_max_size = 20M'; \
+    echo 'session.cookie_httponly = 1'; \
+    echo 'session.cookie_secure = 1'; \
+    echo 'session.use_strict_mode = 1'; \
+    } > /usr/local/etc/php/conf.d/custom-security.ini
+
+# Configuration OPcache + JIT (PHP 8.4)
 RUN { \
     echo 'opcache.enable=1'; \
     echo 'opcache.memory_consumption=256'; \
@@ -64,10 +76,11 @@ RUN { \
     echo 'opcache.max_accelerated_files=20000'; \
     echo 'opcache.revalidate_freq=0'; \
     echo 'opcache.validate_timestamps=0'; \
+    echo 'opcache.jit=tracing'; \
+    echo 'opcache.jit_buffer_size=128M'; \
     } > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
 COPY --from=builder /var/www/html /var/www/html
-
 
 RUN mkdir -p /var/www/html/var && chown -R www-data:www-data /var/www/html/var
 
