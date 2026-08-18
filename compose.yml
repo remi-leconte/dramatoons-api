@@ -29,7 +29,5 @@ networks:
   shared_database_network:
     external: true
   api_internal_network:
-    name: shared_api_network
-    external: true
   global_proxy_network:
     external: true
