@@ -15,6 +15,7 @@ services:
       - php
     networks:
       - api_internal_network
+      - global_proxy_network
 
   redis:
     image: redis:8.10.0-alpine3.23
@@ -22,10 +23,11 @@ services:
     networks:
       - api_internal_network
 
-
 networks:
   shared_database_network:
     external: true
   api_internal_network:
     name: shared_api_network
+    external: true
+  global_proxy_network:
     external: true
