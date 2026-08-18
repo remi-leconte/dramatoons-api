@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: ./docker/php/Dockerfile
     restart: unless-stopped
+    env_file:
+      - .env
     networks:
       - shared_database_network
       - api_internal_network
