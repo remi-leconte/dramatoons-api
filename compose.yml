@@ -7,7 +7,7 @@ services:
     env_file:
       - .env
     networks:
-      - shared_database_network
+      - shared_database_prod_network
       - api_internal_network
 
   nginx:
@@ -26,7 +26,8 @@ services:
       - api_internal_network
 
 networks:
-  shared_database_network:
+  shared_database_prod_network:
+    name: shared_database_prod_network
     external: true
   api_internal_network:
   global_proxy_network:
