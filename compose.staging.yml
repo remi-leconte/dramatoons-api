@@ -12,8 +12,6 @@ services:
     volumes:
       - uploads_staging_data:/var/www/html/public/upload
       - ./config/jwt:/var/www/html/config/jwt
-    networks:
-      - shared_database_staging_network
 
   nginx:
     volumes:

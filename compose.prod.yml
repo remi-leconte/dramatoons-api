@@ -12,8 +12,6 @@ services:
     volumes:
       - uploads_prod_data:/var/www/html/public/upload
       - ./config/jwt:/var/www/html/config/jwt
-    networks:
-      - shared_database_prod_network
 
   nginx:
     ports:
