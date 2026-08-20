@@ -70,7 +70,7 @@ final class Webtoon
     #[Groups(['webtoon:read', 'webtoon:write'])]
     private ?string $slug = null; // tous
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['webtoon:read', 'webtoon:write'])]
     private ?string $status = null; // tous
 

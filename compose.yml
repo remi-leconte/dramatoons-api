@@ -7,7 +7,6 @@ services:
     env_file:
       - .env
     networks:
-      - shared_database_prod_network
       - api_internal_network
 
   nginx:
@@ -25,10 +24,29 @@ services:
     networks:
       - api_internal_network
 
+  mariadb:
+    image: mariadb:12.3.2-noble
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_MYSQL_LOCALHOST_USER: "1"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=512M
+      - --max-connections=100
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - api_internal_network
+
 networks:
-  shared_database_prod_network:
-    name: shared_database_prod_network
-    external: true
   api_internal_network:
   global_proxy_network:
     external: true

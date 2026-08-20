@@ -32,3 +32,12 @@ services:
   redis:
     ports:
       - "127.0.0.1:6379:6379"
+
+  mariadb:
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - bdd_dev_data:/var/lib/mysql
+
+volumes:
+  bdd_dev_data:

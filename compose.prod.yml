@@ -28,11 +28,13 @@ services:
     volumes:
       - redis_prod_data:/data
 
+  mariadb:
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    volumes:
+      - bdd_prod_data:/var/lib/mysql
+
 volumes:
   redis_prod_data:
   uploads_prod_data:
-
-networks:
-  shared_database_prod_network:
-    name: shared_database_prod_network
-    external: true
+  bdd_prod_data:

@@ -25,11 +25,13 @@ services:
     volumes:
       - redis_staging_data:/data
 
+  mariadb:
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    volumes:
+      - bdd_staging_data:/var/lib/mysql
+
 volumes:
   redis_staging_data:
   uploads_staging_data:
-
-networks:
-  shared_database_staging_network:
-    name: shared_database_staging_network
-    external: true
+  bdd_staging_data:
