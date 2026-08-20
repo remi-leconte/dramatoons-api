@@ -82,9 +82,13 @@ RUN { \
 
 COPY --from=builder /var/www/html /var/www/html
 
-RUN mkdir -p /var/www/html/var && chown -R www-data:www-data /var/www/html/var
+RUN mkdir -p /var/www/html/var /var/www/html/public/upload /var/www/html/config/jwt \
+    && chown -R www-data:www-data /var/www/html/var /var/www/html/public/upload /var/www/html/config/jwt
 
-USER www-data
+COPY docker/php/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
+RUN chmod +x /usr/local/bin/docker-entrypoint
+
+ENTRYPOINT ["docker-entrypoint"]
 
 EXPOSE 9000
 CMD ["php-fpm"]

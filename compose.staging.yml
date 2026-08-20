@@ -12,6 +12,7 @@ services:
     volumes:
       - uploads_staging_data:/var/www/html/public/upload
       - ./config/jwt:/var/www/html/config/jwt
+    user: "0:0"
 
   nginx:
     volumes:
@@ -33,3 +34,7 @@ volumes:
   redis_staging_data:
   uploads_staging_data:
   bdd_staging_data:
+
+networks:
+  global_proxy_network:
+    external: true

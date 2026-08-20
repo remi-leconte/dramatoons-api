@@ -12,6 +12,7 @@ services:
     volumes:
       - uploads_prod_data:/var/www/html/public/upload
       - ./config/jwt:/var/www/html/config/jwt
+    user: "0:0"
 
   nginx:
     ports:
