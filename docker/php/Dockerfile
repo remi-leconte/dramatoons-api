@@ -5,7 +5,8 @@ RUN sed -i 's|/sbin/nologin|/bin/sh|g' /etc/passwd
 RUN apk add --no-cache \
     icu-dev \
     libzip-dev \
-    libpng-dev
+    libpng-dev \
+    su-exec
 
 RUN docker-php-ext-install \
     intl \
