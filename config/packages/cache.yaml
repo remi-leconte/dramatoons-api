@@ -1,7 +1,8 @@
 framework:
     cache:
-        default_redis_provider: 'redis://redis:6379'
-        
+        app: cache.adapter.redis
+        default_redis_provider: '%env(REDIS_URL)%'
+
         pools:
             cache.redis_tag_aware:
                 adapter: cache.adapter.redis
