@@ -34,7 +34,3 @@ volumes:
   redis_staging_data:
   uploads_staging_data:
   bdd_staging_data:
-
-networks:
-  global_proxy_network:
-    external: true
