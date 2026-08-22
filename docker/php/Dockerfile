@@ -15,8 +15,8 @@ RUN docker-php-ext-install \
     opcache
 
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS linux-headers \
-    && pecl install apcu \
-    && docker-php-ext-enable apcu \
+    && pecl install apcu redis \
+    && docker-php-ext-enable apcu redis \
     && apk del .build-deps
 
 WORKDIR /var/www/html
