@@ -28,12 +28,12 @@ final class WebtoonProvider implements ProviderInterface
         $page = max(1, (int) ($context['filters']['page'] ?? 1));
         
         $userId = $user ? $user->getId() : 'anon';
-        $searchStatus = $user ? ($user->getSearchStatus() ?? null) : null;
+        $searchStatus = $user ? ($user->getSearchStatus() ?? '') : '';
         $sortBy = $user ? ($user->getSearchSortBy() ?? 'added') : 'default';
         $sortOrder = $user ? ($user->getSearchSortOrder() ?? 'DESC') : 'DESC';
         $limit = $user ? ($user->getSearchItemsPerPage() ?? 20) : 20;
 
-        $cacheKey = sprintf('webtoons_u%s_p%d_l%d_st%s_sb%s_so%s', $userId, $page, $limit, md5($searchStatus), $sortBy, $sortOrder);
+        $cacheKey = sprintf('webtoons_u%s_p%d_l%d_st%s_sb%s_so%s', $userId, $page, $limit, $searchStatus, $sortBy, $sortOrder);
 
         $cachedData = $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $page, $limit) {
             $item->tag(['webtoons_list', 'user_' . ($user ? $user->getId() : 'anon')]);
