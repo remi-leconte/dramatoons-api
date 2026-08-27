@@ -32,7 +32,10 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
             processor: WebtoonUserProcessor::class
         ),
         new Put(denormalizationContext: ['groups' => ['webtoon_user:write']]),
-        new Patch(denormalizationContext: ['groups' => ['webtoon_user:write']]),
+        new Patch(
+            denormalizationContext: ['groups' => ['webtoon_user:write']],
+            processor: WebtoonUserProcessor::class
+        ),
         new Delete(),
     ],
     normalizationContext: ['groups' => ['webtoon_user:read', 'webtoon:read'], 'skip_null_values' => false]
