@@ -23,10 +23,10 @@ final class WebtoonRepository extends ServiceEntityRepository
             ->select('w.id');
 
         if ($user instanceof User) {
-            $searchStatus = array_filter($user->getSearchStatus() ?? []);
+            $searchStatus = $user->getSearchStatus() ?? null;
             if (!empty($searchStatus)) {
                 $qb->join('w.readers', 'wu_status', 'WITH', 'wu_status.reader = :user')
-                ->andWhere('wu_status.state IN (:searchStatus)')
+                ->andWhere('wu_status.state = :searchStatus')
                 ->setParameter('searchStatus', $searchStatus)
                 ->setParameter('user', $user);
             }
