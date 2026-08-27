@@ -41,10 +41,10 @@ final class WebtoonRepository extends ServiceEntityRepository
                                 ->addSelect('wu_user.rate AS HIDDEN user_rate')
                                 ->setParameter('user', $user)
                                 ->orderBy('user_rate', $sortOrder),
-                default => $qb->orderBy('w.updated', $sortOrder),
+                default => $qb->orderBy('w.created', $sortOrder),
             };
         } else {
-            $qb->orderBy('w.updated', 'DESC');
+            $qb->orderBy('w.created', 'DESC');
         }
 
         $countQb = clone $qb;
