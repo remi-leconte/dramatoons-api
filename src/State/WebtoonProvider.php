@@ -28,7 +28,7 @@ final class WebtoonProvider implements ProviderInterface
         $page = max(1, (int) ($context['filters']['page'] ?? 1));
         
         $userId = $user ? $user->getId() : 'anon';
-        $searchStatus = $user ? implode('-', $user->getSearchStatus() ?? []) : '';
+        $searchStatus = $user ? ($user->getSearchStatus() ?? null) : null;
         $sortBy = $user ? ($user->getSearchSortBy() ?? 'added') : 'default';
         $sortOrder = $user ? ($user->getSearchSortOrder() ?? 'DESC') : 'DESC';
         $limit = $user ? ($user->getSearchItemsPerPage() ?? 20) : 20;
