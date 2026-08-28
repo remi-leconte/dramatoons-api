@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\WebtoonUser;
 use App\Entity\Webtoon;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -42,5 +43,20 @@ final class WebtoonUserRepository extends ServiceEntityRepository
         ->setParameter('count', $count)
         ->setParameter('id', $webtoon->getId())
         ->execute();
+    }
+
+    public function countBookmark(?User $user): int
+    {
+        if (!$user) {
+            return 0;
+        }
+
+        return (int) $this->createQueryBuilder('wu')
+            ->select('COUNT(DISTINCT wu.id)')
+            ->where('wu.reader = :user')
+            ->andWhere('(wu.state IS NOT NULL AND wu.state != \'\') OR (wu.bookmark IS NOT NULL AND wu.bookmark != \'\')')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 }

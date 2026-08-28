@@ -17,7 +17,7 @@ final class WebtoonRepository extends ServiceEntityRepository
         parent::__construct($registry, Webtoon::class);
     }
 
-    public function findFilteredIdsForUser(?User $user, int $page, int $limit): array
+    public function findFilteredIdsForUser(?User $user, int $page, ?int $limit): array
     {
         $qb = $this->createQueryBuilder('w')
             ->select('w.id');
@@ -50,10 +50,12 @@ final class WebtoonRepository extends ServiceEntityRepository
         $countQb = clone $qb;
         $totalItems = (int) $countQb->select('COUNT(DISTINCT w.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
 
-        $ids = $qb->setMaxResults($limit)
-                ->setFirstResult(($page - 1) * $limit)
-                ->getQuery()
-                ->getSingleColumnResult();
+        if ($limit !== null) {
+            $qb->setMaxResults($limit)
+               ->setFirstResult(($page - 1) * $limit);
+        }
+
+        $ids = $qb->getQuery()->getSingleColumnResult();
 
         return ['ids' => $ids, 'totalItems' => $totalItems];
     }
