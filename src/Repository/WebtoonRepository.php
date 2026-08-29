@@ -17,16 +17,16 @@ final class WebtoonRepository extends ServiceEntityRepository
         parent::__construct($registry, Webtoon::class);
     }
 
-    public function findFilteredIdsForUser(?User $user, int $page, int $limit): array
+    public function findFilteredIdsForUser(?User $user, int $page, ?int $limit): array
     {
         $qb = $this->createQueryBuilder('w')
             ->select('w.id');
 
         if ($user instanceof User) {
-            $searchStatus = array_filter($user->getSearchStatus() ?? []);
+            $searchStatus = $user->getSearchStatus() ?? null;
             if (!empty($searchStatus)) {
                 $qb->join('w.readers', 'wu_status', 'WITH', 'wu_status.reader = :user')
-                ->andWhere('wu_status.state IN (:searchStatus)')
+                ->andWhere('wu_status.state = :searchStatus')
                 ->setParameter('searchStatus', $searchStatus)
                 ->setParameter('user', $user);
             }
@@ -41,19 +41,21 @@ final class WebtoonRepository extends ServiceEntityRepository
                                 ->addSelect('wu_user.rate AS HIDDEN user_rate')
                                 ->setParameter('user', $user)
                                 ->orderBy('user_rate', $sortOrder),
-                default => $qb->orderBy('w.updated', $sortOrder),
+                default => $qb->orderBy('w.created', $sortOrder),
             };
         } else {
-            $qb->orderBy('w.updated', 'DESC');
+            $qb->orderBy('w.created', 'DESC');
         }
 
         $countQb = clone $qb;
         $totalItems = (int) $countQb->select('COUNT(DISTINCT w.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
 
-        $ids = $qb->setMaxResults($limit)
-                ->setFirstResult(($page - 1) * $limit)
-                ->getQuery()
-                ->getSingleColumnResult();
+        if ($limit !== null) {
+            $qb->setMaxResults($limit)
+               ->setFirstResult(($page - 1) * $limit);
+        }
+
+        $ids = $qb->getQuery()->getSingleColumnResult();
 
         return ['ids' => $ids, 'totalItems' => $totalItems];
     }

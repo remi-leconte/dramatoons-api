@@ -11,7 +11,6 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
-
 final class WebtoonProvider implements ProviderInterface
 {
     public function __construct(
@@ -25,15 +24,18 @@ final class WebtoonProvider implements ProviderInterface
         /** @var User|null $user */
         $user = $this->security->getUser();
 
+        $paginationEnabled = filter_var($context['filters']['pagination'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
         $page = max(1, (int) ($context['filters']['page'] ?? 1));
         
         $userId = $user ? $user->getId() : 'anon';
-        $searchStatus = $user ? implode('-', $user->getSearchStatus() ?? []) : '';
+        $searchStatus = $user ? ($user->getSearchStatus() ?? '') : '';
         $sortBy = $user ? ($user->getSearchSortBy() ?? 'added') : 'default';
         $sortOrder = $user ? ($user->getSearchSortOrder() ?? 'DESC') : 'DESC';
-        $limit = $user ? ($user->getSearchItemsPerPage() ?? 20) : 20;
 
-        $cacheKey = sprintf('webtoons_u%s_p%d_l%d_st%s_sb%s_so%s', $userId, $page, $limit, md5($searchStatus), $sortBy, $sortOrder);
+        $limit = !$paginationEnabled ? null : ($user ? ($user->getSearchItemsPerPage() ?? 20) : 20);
+
+        $cacheKey = sprintf('webtoons_u%s_p%d_l%s_st%s_sb%s_so%s', $userId, $page, $limit ?? 'all', $searchStatus, $sortBy, $sortOrder);
 
         $cachedData = $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $page, $limit) {
             $item->tag(['webtoons_list', 'user_' . ($user ? $user->getId() : 'anon')]);
@@ -44,6 +46,10 @@ final class WebtoonProvider implements ProviderInterface
         $webtoons = [];
         if (!empty($cachedData['ids'])) {
             $webtoons = $this->webtoonRepository->findByIdsWithUserProgress($cachedData['ids'], $user);
+        }
+
+        if (!$paginationEnabled) {
+            return $webtoons;
         }
 
         return new TraversablePaginator(

@@ -92,7 +92,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(name: 'searchStatus', length: 255, nullable: true)]
     #[Groups(['user:read:owner', 'user:write:owner'])]
-    private ?array $searchStatus = null;
+    private ?string $searchStatus = null;
 
     #[ORM\Column(name: 'searchItemsPerPage', nullable: true)]
     #[Groups(['user:read:owner', 'user:write:owner'])]
@@ -273,12 +273,12 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getSearchStatus(): ?array
+    public function getSearchStatus(): ?string
     {
         return $this->searchStatus;
     }
 
-    public function setSearchStatus(?array $searchStatus): static
+    public function setSearchStatus(?string $searchStatus): static
     {
         $this->searchStatus = $searchStatus;
 
