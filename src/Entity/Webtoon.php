@@ -74,10 +74,6 @@ final class Webtoon
     #[Groups(['webtoon:read', 'webtoon:write'])]
     private ?string $status = null; // tous
 
-    #[ORM\Column]
-    #[Groups(['webtoon:read', 'webtoon:write'])]
-    private ?int $chapter = null; // tous
-
     #[ORM\Column(type: 'datetime_immutable')]
     #[Groups(['webtoon:read'])]
     private ?\DateTimeInterface $created = null; // tous lecture
@@ -171,18 +167,6 @@ final class Webtoon
     public function setStatus(string $status): static
     {
         $this->status = $status;
-
-        return $this;
-    }
-
-    public function getChapter(): ?int
-    {
-        return $this->chapter;
-    }
-
-    public function setChapter(int $chapter): static
-    {
-        $this->chapter = $chapter;
 
         return $this;
     }
