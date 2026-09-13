@@ -34,22 +34,6 @@ final class WebtoonProcessor implements ProcessorInterface
             if ($user instanceof User && $data->getCreator() === null) {
                 $data->setCreator($user);
             }
-
-            if ($this->security->isGranted('ROLE_ADMIN')) {
-                $data->setPublish(true);
-            } 
-            elseif ($this->security->isGranted('ROLE_MODO')) {
-                $isCreator = $data->getCreator() === $user;
-                
-                if ($isCreator) {
-                    $data->setPublish(true);
-                } else {
-                    $data->setPublish(false);
-                }
-            } 
-            else {
-                $data->setPublish(false);
-            }
         }
 
         $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);

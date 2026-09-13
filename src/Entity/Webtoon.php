@@ -34,18 +34,16 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
         new Post(
             denormalizationContext: ['groups' => ['webtoon:write']],
             normalizationContext: ['groups' => ['webtoon:read']],
-            security: "is_granted('ROLE_MODO')",
-            securityMessage: "Seuls les administrateurs et les modérateurs peuvent créer un Webtoon.",
             processor: WebtoonProcessor::class),
         new Patch(denormalizationContext: ['groups' => ['webtoon:write']],
             normalizationContext: ['groups' => ['webtoon:read']],
-            security: "is_granted('ROLE_ADMIN') or object == user",
-            securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce webtoon peut le modifier.",
+            security: "is_granted('ROLE_MODO') or object.getCreator() == user",
+            securityMessage: "Seul un modérateur ou l'utilisateur propriétaire de ce webtoon peut le modifier.",
             processor: WebtoonProcessor::class),
         new Delete(
             normalizationContext: ['groups' => ['webtoon:read']],
-            security: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_MODO') and object.getCreator() == user)",
-            securityMessage: "Seul un administrateur ou le modérateur propriétaire de ce Webtoon peut le supprimer.",
+            security: "is_granted('ROLE_MODO') or object.getCreator() == user",
+            securityMessage: "Seul un modérateur ou l'utilisateur propriétaire de ce Webtoon peut le supprimer.",
             processor: WebtoonRemoveProcessor::class)
     ]
 )]
@@ -83,8 +81,8 @@ final class Webtoon
     private ?\DateTimeInterface $updated = null; // tous lecture
 
     #[ORM\Column]
-    #[Groups(['webtoon:read', 'webtoon:write:owner'])]
-    private ?bool $publish = false; // uniquement le propriétaire et l'admin
+    #[Groups(['webtoon:read', 'webtoon:write:modo'])]
+    private ?bool $publish = false;
 
     #[ORM\Column(length: 255)]
     #[Groups(['webtoon:read', 'webtoon:write'])]
@@ -111,7 +109,7 @@ final class Webtoon
      * @var Collection<int, WebtoonUser>
      */
     #[ORM\OneToMany(targetEntity: WebtoonUser::class, mappedBy: 'webtoon')]
-    private Collection $readers; // lecture : uniquement les infos de l'utilisateur connecté
+    private Collection $readers;
 
     #[Groups(['webtoon:read'])]
     private ?WebtoonUser $userProgress = null;
