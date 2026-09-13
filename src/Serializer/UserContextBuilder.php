@@ -24,29 +24,27 @@ final class UserContextBuilder implements SerializerContextBuilderInterface
             
             $currentUser = $this->security->getUser();
 
-            // 1. Si l'utilisateur connecté est ADMIN (sur n'importe quelle ressource)
-            if ($this->security->isGranted('ROLE_ADMIN')) {
-                $this->addGroupIfMissing($context, 'user:read:owner');
-                    if (!$normalization) {
-                        $this->addGroupIfMissing($context, 'user:patch:owner');
-                        $this->addGroupIfMissing($context, 'user:patch:admin');
+            // Si l'utilisateur connecté est MODO (sur n'importe quelle ressource)
+            if ($this->security->isGranted('ROLE_MODO')) {
+                $this->addGroupIfMissing($context, 'webtoon:write:modo'); // publish
+                if (!$normalization) { // POST, PUT, PATCH
+                    $this->addGroupIfMissing($context, 'user:patch:owner'); // email, password, login
+                    if ($this->security->isGranted('ROLE_ADMIN')) {
+                        $this->addGroupIfMissing($context, 'user:patch:admin'); // roles
                     }
+                }
                 return $context;
             }
 
-            // 2. Si un utilisateur est connecté (non-admin)
+
+            // Si un utilisateur est connecté (non-modo)
             if ($currentUser instanceof User) {
                 $targetUser = $request->attributes->get('data');
-                $isOwner = false;
 
                 // Si la ressource actuelle est un User et que c'est lui-même
                 if ($targetUser instanceof User && $currentUser->getUserIdentifier() === $targetUser->getUserIdentifier()) {
-                    $isOwner = true;
-                }
-
-                if ($isOwner) {
                     $this->addGroupIfMissing($context, 'user:read:owner');
-                    if (!$normalization) {
+                    if (!$normalization) { // POST, PUT, PATCH
                         $this->addGroupIfMissing($context, 'user:patch:owner');
                     }
                 }
