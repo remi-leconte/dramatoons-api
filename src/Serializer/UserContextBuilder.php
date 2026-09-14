@@ -33,9 +33,7 @@ final class UserContextBuilder implements SerializerContextBuilderInterface
                         $this->addGroupIfMissing($context, 'user:patch:admin'); // roles
                     }
                 }
-                return $context;
             }
-
 
             // Si un utilisateur est connecté (non-modo)
             if ($currentUser instanceof User) {

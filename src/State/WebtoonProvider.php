@@ -31,6 +31,7 @@ final class WebtoonProvider implements ProviderInterface
         $paginationEnabled = filter_var($context['filters']['pagination'] ?? true, FILTER_VALIDATE_BOOLEAN);
 
         $page = max(1, (int) ($context['filters']['page'] ?? 1));
+        $title = $context['filters']['title'] ?? '';
         
         $userId = $user->getId();
         $searchStatus = $user->getSearchStatus() ?? '';
@@ -39,12 +40,12 @@ final class WebtoonProvider implements ProviderInterface
 
         $limit = !$paginationEnabled ? null : ($user->getSearchItemsPerPage() ?? 20);
 
-        $cacheKey = sprintf('webtoons_u%s_p%d_l%s_st%s_sb%s_so%s', $userId, $page, $limit ?? 'all', $searchStatus, $sortBy, $sortOrder);
+        $cacheKey = sprintf('webtoons_u%s_p%d_l%s_st%s_sb%s_so%s_t%s', $userId, $page, $limit ?? 'all', $searchStatus, $sortBy, $sortOrder, $title);
 
-        $cachedData = $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $page, $limit) {
+        $cachedData = $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $page, $title, $limit) {
             $item->tag(['webtoons_list', 'user_' . $user->getId()]);
 
-            return $this->webtoonRepository->findFilteredIdsForUser($user, $page, $limit);
+            return $this->webtoonRepository->findFilteredIdsForUser($user, $title, $page, $limit);
         });
 
         $webtoons = [];
