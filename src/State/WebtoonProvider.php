@@ -24,23 +24,28 @@ final class WebtoonProvider implements ProviderInterface
         /** @var User|null $user */
         $user = $this->security->getUser();
 
+        if (!$user instanceof User) {
+            return [];
+        }
+
         $paginationEnabled = filter_var($context['filters']['pagination'] ?? true, FILTER_VALIDATE_BOOLEAN);
 
         $page = max(1, (int) ($context['filters']['page'] ?? 1));
+        $title = $context['filters']['title'] ?? '';
         
-        $userId = $user ? $user->getId() : 'anon';
-        $searchStatus = $user ? ($user->getSearchStatus() ?? '') : '';
-        $sortBy = $user ? ($user->getSearchSortBy() ?? 'added') : 'default';
-        $sortOrder = $user ? ($user->getSearchSortOrder() ?? 'DESC') : 'DESC';
+        $userId = $user->getId();
+        $searchStatus = $user->getSearchStatus() ?? '';
+        $sortBy = $user->getSearchSortBy() ?? 'added';
+        $sortOrder = $user->getSearchSortOrder() ?? 'DESC';
 
-        $limit = !$paginationEnabled ? null : ($user ? ($user->getSearchItemsPerPage() ?? 20) : 20);
+        $limit = !$paginationEnabled ? null : ($user->getSearchItemsPerPage() ?? 20);
 
-        $cacheKey = sprintf('webtoons_u%s_p%d_l%s_st%s_sb%s_so%s', $userId, $page, $limit ?? 'all', $searchStatus, $sortBy, $sortOrder);
+        $cacheKey = sprintf('webtoons_u%s_p%d_l%s_st%s_sb%s_so%s_t%s', $userId, $page, $limit ?? 'all', $searchStatus, $sortBy, $sortOrder, $title);
 
-        $cachedData = $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $page, $limit) {
-            $item->tag(['webtoons_list', 'user_' . ($user ? $user->getId() : 'anon')]);
+        $cachedData = $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $page, $title, $limit) {
+            $item->tag(['webtoons_list', 'user_' . $user->getId()]);
 
-            return $this->webtoonRepository->findFilteredIdsForUser($user, $page, $limit);
+            return $this->webtoonRepository->findFilteredIdsForUser($user, $title, $page, $limit);
         });
 
         $webtoons = [];
