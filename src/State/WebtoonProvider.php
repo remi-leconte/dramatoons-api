@@ -32,7 +32,8 @@ final class WebtoonProvider implements ProviderInterface
 
         $page = max(1, (int) ($context['filters']['page'] ?? 1));
         $title = $context['filters']['title'] ?? '';
-        $inAdmin = $context['filters']['admin'] ?? false;
+        $requestedAdmin = filter_var($context['filters']['admin'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $inAdmin = $requestedAdmin && $this->security->isGranted('ROLE_ADMIN');
         $publish = $context['filters']['publish'] ?? true;
         
         $userId = $user->getId();
