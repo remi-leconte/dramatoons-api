@@ -10,6 +10,9 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -28,18 +31,39 @@ use Symfony\Component\Security\Core\User\UserInterface;
     operations: [
         new GetCollection(normalizationContext: ['groups' => ['user:read']]),
         new Get(normalizationContext: ['groups' => ['user:read']]),
-        new Post(denormalizationContext: ['groups' => ['user:write']],
+        new Post(
+            denormalizationContext: ['groups' => ['user:write']],
             normalizationContext: ['groups' => ['user:read']],
-            processor: UserProcessor::class),
-        new Patch(denormalizationContext: ['groups' => []], // Ne semble pas utile, à vérifier en mode prod
+            processor: UserProcessor::class
+        ),
+        new Patch(
+            denormalizationContext: ['groups' => []],
             normalizationContext: ['groups' => ['user:read']],
             security: "is_granted('ROLE_ADMIN') or object == user",
             securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce compte peut le modifier.",
-            processor: UserProcessor::class),
-        new Delete(security: "is_granted('ROLE_ADMIN') or object == user",
-            securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce compte peut le supprimer.")
+            processor: UserProcessor::class
+        ),
+        new Delete(
+            security: "is_granted('ROLE_ADMIN') or object == user",
+            securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce compte peut le supprimer."
+        )
     ]
 )]
+// Configuration des filtres de recherche
+#[ApiFilter(SearchFilter::class, properties: [
+    'id' => 'exact',
+    'login' => 'partial',
+    'email' => 'partial',
+    'roles' => 'partial'
+])]
+// Configuration des filtres de tri
+#[ApiFilter(OrderFilter::class, properties: [
+    'id',
+    'login',
+    'email',
+    'roles',
+    'lastLogin'
+])]
 final class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -110,6 +134,10 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read:owner'])]
     private ?bool $verified = null;
 
+    #[ORM\Column(name: 'lastLogin', type: 'datetime_immutable', nullable: true)]
+    #[Groups(['user:read'])]
+    private ?\DateTimeInterface $lastLogin = null;
+
     /**
      * @var Collection<int, Webtoon>
      */
@@ -127,7 +155,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->createdWebtoons = new ArrayCollection();
         $this->readWebtoons = new ArrayCollection();
 
-        $this->roles = [];
+        $this->roles = ['ROLE_USER'];
         $this->created = new \DateTimeImmutable();
         $this->updated = new \DateTimeImmutable();
     }
@@ -330,6 +358,18 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setVerified(bool $verified): static
     {
         $this->verified = $verified;
+
+        return $this;
+    }
+
+    public function getLastLogin(): ?\DateTimeInterface
+    {
+        return $this->lastLogin;
+    }
+
+    public function setLastLogin(?\DateTimeInterface $lastLogin): static
+    {
+        $this->lastLogin = $lastLogin;
 
         return $this;
     }
