@@ -17,20 +17,27 @@ final class WebtoonRepository extends ServiceEntityRepository
         parent::__construct($registry, Webtoon::class);
     }
 
-    public function findFilteredIdsForUser(User $user, ?string $searchTitle, int $page, ?int $limit): array
+    public function findFilteredIdsForUser(User $user, ?string $searchTitle, int $page, ?int $limit, bool $inAdmin, bool $publish): array
     {
         $qb = $this->createQueryBuilder('w')
             ->select('w.id');
 
         // Ne récupérer que les webtoons publiés OU créés par l'utilisateur connecté
-        $qb->andWhere(
-            $qb->expr()->orX(
-                'w.publish = :publish',
-                'w.creator = :current_user'
+        if (!$inAdmin) {
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    'w.publish = :publish',
+                    'w.creator = :current_user'
+                )
             )
-        )
-        ->setParameter('publish', true)
-        ->setParameter('current_user', $user);
+            ->setParameter('publish', true)
+            ->setParameter('current_user', $user);
+        } else {
+            if (!$publish) {
+                $qb->andWhere('w.publish = :publish')
+                ->setParameter('publish', false);
+            }
+        }
 
         if (!empty($searchTitle)) {
             $qb->andWhere('w.title LIKE :searchTitle')

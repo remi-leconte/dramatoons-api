@@ -27,6 +27,9 @@ final class UserContextBuilder implements SerializerContextBuilderInterface
             // Si l'utilisateur connecté est MODO (sur n'importe quelle ressource)
             if ($this->security->isGranted('ROLE_MODO')) {
                 $this->addGroupIfMissing($context, 'webtoon:write:modo'); // publish
+                if ($this->security->isGranted('ROLE_ADMIN')) {
+                    $this->addGroupIfMissing($context, 'user:read:owner'); // id, email
+                }
                 if (!$normalization) { // POST, PUT, PATCH
                     $this->addGroupIfMissing($context, 'user:patch:owner'); // email, password, login
                     if ($this->security->isGranted('ROLE_ADMIN')) {
