@@ -32,20 +32,23 @@ final class WebtoonProvider implements ProviderInterface
 
         $page = max(1, (int) ($context['filters']['page'] ?? 1));
         $title = $context['filters']['title'] ?? '';
+        $inAdmin = $context['filters']['admin'] ?? false;
+        $publish = $context['filters']['publish'] ?? true;
         
         $userId = $user->getId();
         $searchStatus = $user->getSearchStatus() ?? '';
         $sortBy = $user->getSearchSortBy() ?? 'added';
         $sortOrder = $user->getSearchSortOrder() ?? 'DESC';
 
-        $limit = !$paginationEnabled ? null : ($user->getSearchItemsPerPage() ?? 20);
+        $limit = !$paginationEnabled ? null : ($context['filters']['itemsPerPage'] ?? $user->getSearchItemsPerPage() ?? 20);
 
-        $cacheKey = sprintf('webtoons_u%s_p%d_l%s_st%s_sb%s_so%s_t%s', $userId, $page, $limit ?? 'all', $searchStatus, $sortBy, $sortOrder, $title);
+        $cacheKey = sprintf('webtoons_u%s_pa%d_l%s_st%s_sb%s_so%s_t%s_a%s_pu%s', $userId, $page, $limit ?? 'all', $searchStatus, $sortBy, $sortOrder, $title, $inAdmin, $publish);
 
-        $cachedData = $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $page, $title, $limit) {
+        $cachedData = $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $page, $title, $limit, $inAdmin, $publish) {
+            $item->expiresAfter(new \DateInterval('P10D'));
             $item->tag(['webtoons_list', 'user_' . $user->getId()]);
 
-            return $this->webtoonRepository->findFilteredIdsForUser($user, $title, $page, $limit);
+            return $this->webtoonRepository->findFilteredIdsForUser($user, $title, $page, $limit, $inAdmin, $publish);
         });
 
         $webtoons = [];

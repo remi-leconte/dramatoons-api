@@ -64,7 +64,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 255, unique: true)]
-    #[Groups(['user:read', 'user:write','user:patch:owner'])]
+    #[Groups(['user:read', 'webtoon_user:read', 'user:write','user:patch:owner'])]
     #[Assert\NotBlank(message: "Le login est obligatoire.")]
     private ?string $login = null;
 
@@ -103,6 +103,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $rememberToken = null;
 
     #[ORM\Column(type: 'boolean', nullable: true, options: ['default' => true])]
+    #[Groups(['user:read:owner'])]
     private ?bool $publish = true;
 
     #[ORM\Column(type: 'boolean', nullable: true, options: ['default' => false])]
