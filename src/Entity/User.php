@@ -28,6 +28,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[UniqueEntity(fields: ['login'], message: "Ce nom d'utilisateur est déjà utilisé.")]
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ApiResource(
+    paginationClientItemsPerPage: true,
+    paginationItemsPerPage: 20,
     operations: [
         new GetCollection(normalizationContext: ['groups' => ['user:read']]),
         new Get(normalizationContext: ['groups' => ['user:read']]),
@@ -49,14 +51,12 @@ use Symfony\Component\Security\Core\User\UserInterface;
         )
     ]
 )]
-// Configuration des filtres de recherche
 #[ApiFilter(SearchFilter::class, properties: [
     'id' => 'exact',
     'login' => 'partial',
     'email' => 'partial',
     'roles' => 'partial'
 ])]
-// Configuration des filtres de tri
 #[ApiFilter(OrderFilter::class, properties: [
     'id',
     'login',
