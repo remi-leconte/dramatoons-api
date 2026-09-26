@@ -37,11 +37,14 @@ final class WebtoonRepository extends ServiceEntityRepository
                ->setParameter('id', $id);
         }
 
+        // Gestion de la visibilité publique vs créateur / lecteur
         if (!$inAdmin) {
-            $qb->andWhere(
+            $qb->leftJoin('w.readers', 'wu_access', 'WITH', 'wu_access.reader = :current_user')
+            ->andWhere(
                 $qb->expr()->orX(
                     'w.publish = :publish',
-                    'w.creator = :current_user'
+                    'w.creator = :current_user',
+                    'wu_access.id IS NOT NULL' // l'utilisateur a déjà interagi avec le webtoon
                 )
             )
             ->setParameter('publish', true)
