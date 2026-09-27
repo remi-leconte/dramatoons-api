@@ -44,12 +44,13 @@ final class WebtoonProvider implements ProviderInterface
             : true;
 
         $orderQuery = $filters['order'] ?? [];
-        $sortBy = null;
-        $sortOrder = null;
 
         if (!empty($orderQuery) && is_array($orderQuery)) {
             $sortBy = (string) array_key_first($orderQuery);
-            $sortOrder = (string) ($orderQuery[$sortBy] ?? 'ASC');
+            $sortOrder = (string) ($orderQuery[$sortBy] ?? 'DESC');
+        } else {
+            $sortBy = $user->getSearchSortBy() ?? 'added';
+            $sortOrder = $user->getSearchSortOrder() ?? 'DESC';
         }
 
         $userId = $user->getId();
@@ -65,8 +66,8 @@ final class WebtoonProvider implements ProviderInterface
             $id ?? 'none',
             $searchStatus,
             $status ?? 'none',
-            $sortBy ?? 'default',
-            $sortOrder ?? 'default',
+            $sortBy,
+            $sortOrder,
             md5($title),
             (int) $inAdmin,
             (int) $publish
