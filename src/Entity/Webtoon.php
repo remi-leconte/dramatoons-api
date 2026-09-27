@@ -44,8 +44,8 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
             processor: WebtoonProcessor::class),
         new Delete(
             normalizationContext: ['groups' => ['webtoon:read']],
-            security: "is_granted('ROLE_MODO') or object.getCreator() == user",
-            securityMessage: "Seul un modérateur ou l'utilisateur propriétaire de ce Webtoon peut le supprimer.",
+            security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.hasOtherInteractions())",
+            securityMessage: "Vous ne pouvez pas supprimer ce Webtoon car d'autres utilisateurs ont déjà interagi avec.",
             processor: WebtoonRemoveProcessor::class)
     ]
 )]
@@ -340,5 +340,16 @@ final class Webtoon
     {
         $this->userProgress = $userProgress;
         return $this;
+    }
+
+    public function hasOtherInteractions(): bool
+    {
+        foreach ($this->readers as $reader) {
+            if ($reader->getReader() !== $this->creator) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
