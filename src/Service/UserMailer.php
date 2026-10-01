@@ -23,17 +23,13 @@ final class UserMailer
      */
     public function sendVerificationEmail(User $user): void
     {
-        // 1. Génération et affectation des jetons de validation
         $user->setVerified(0);
         $user->setResetToken(bin2hex(random_bytes(32)));
         $user->setResetTokenExpiration((new \DateTimeImmutable())->modify('+1 hour'));
-
-        // 2. Sauvegarde des modifications du token en BDD
         $this->em->flush();
 
-        // 3. Préparation et envoi de l'e-mail
         $email = (new Email())
-            ->from(new Address('no-reply@rick5016.net', 'Dramatoons'))
+            ->from(new Address('noreply@dramatoons.ovh', 'Dramatoons'))
             ->to($user->getEmail())
             ->subject('Validez votre adresse email')
             ->html(sprintf('Cliquez ici : %s/verify?token=%s', $this->frontendUrl, $user->getResetToken()));
@@ -46,16 +42,12 @@ final class UserMailer
      */
     public function sendForgotPasswordEmail(User $user): void
     {
-        // 1. Génération du jeton (valable 1 heure)
         $user->setResetToken(bin2hex(random_bytes(32)));
         $user->setResetTokenExpiration((new \DateTimeImmutable())->modify('+1 hour'));
-
-        // 2. Sauvegarde en BDD
         $this->em->flush();
 
-        // 3. Préparation et envoi de l'e-mail avec le lien vers ton futur formulaire Front
         $email = (new Email())
-            ->from(new Address('no-reply@rick5016.net', 'Dramatoons'))
+            ->from(new Address('noreply@dramatoons.ovh', 'Dramatoons'))
             ->to($user->getEmail())
             ->subject('Réinitialisation de votre mot de passe')
             ->html(sprintf('Cliquez ici pour changer votre mot de passe : %s/reset-password?token=%s', $this->frontendUrl, $user->getResetToken()));

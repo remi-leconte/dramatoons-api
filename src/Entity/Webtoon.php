@@ -11,6 +11,9 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use App\Repository\WebtoonRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -26,7 +29,6 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
 #[Vich\Uploadable]
 #[ApiResource(
     operations: [
-        // règles spécifique de la récupération de la collection dans src/Doctrine/WebtoonPublishExtension.php
         new GetCollection(
             normalizationContext: ['groups' => ['webtoon:read']],
             provider: WebtoonProvider::class),
@@ -42,11 +44,24 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
             processor: WebtoonProcessor::class),
         new Delete(
             normalizationContext: ['groups' => ['webtoon:read']],
-            security: "is_granted('ROLE_MODO') or object.getCreator() == user",
-            securityMessage: "Seul un modérateur ou l'utilisateur propriétaire de ce Webtoon peut le supprimer.",
+            security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.hasOtherInteractions())",
+            securityMessage: "Vous ne pouvez pas supprimer ce Webtoon car d'autres utilisateurs ont déjà interagi avec.",
             processor: WebtoonRemoveProcessor::class)
     ]
 )]
+#[ApiFilter(SearchFilter::class, properties: [
+    'id' => 'exact',
+    'title' => 'partial',
+    'status' => 'partial',
+    'publish' => 'partial'
+])]
+#[ApiFilter(OrderFilter::class, properties: [
+    'id',
+    'title',
+    'status',
+    'publish',
+    'updated'
+])]
 final class Webtoon
 {
     #[ORM\Id]
@@ -325,5 +340,16 @@ final class Webtoon
     {
         $this->userProgress = $userProgress;
         return $this;
+    }
+
+    public function hasOtherInteractions(): bool
+    {
+        foreach ($this->readers as $reader) {
+            if ($reader->getReader() !== $this->creator) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

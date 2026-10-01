@@ -9,12 +9,18 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use App\State\WebtoonUserProcessor;
 use App\Repository\WebtoonUserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
+#[ApiFilter(SearchFilter::class, properties: [
+    'reader' => 'exact',
+    'webtoon' => 'exact'
+])]
 #[ORM\Entity(repositoryClass: WebtoonUserRepository::class)]
 #[UniqueEntity(
     fields: ['reader', 'webtoon'],
@@ -50,6 +56,7 @@ final class WebtoonUser
 
     #[ORM\ManyToOne(inversedBy: 'readWebtoons')]
     #[ORM\JoinColumn(name: 'user_id', nullable: false)]
+    #[Groups(['webtoon_user:read'])]
     private ?User $reader = null;
 
     #[ORM\ManyToOne(inversedBy: 'readers')]

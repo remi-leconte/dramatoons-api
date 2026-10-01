@@ -28,24 +28,67 @@ final class WebtoonProvider implements ProviderInterface
             return [];
         }
 
-        $paginationEnabled = filter_var($context['filters']['pagination'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $filters = $context['filters'] ?? [];
 
-        $page = max(1, (int) ($context['filters']['page'] ?? 1));
-        $title = $context['filters']['title'] ?? '';
+        $paginationEnabled = filter_var($filters['pagination'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $page = max(1, (int) ($filters['page'] ?? 1));
+
+        $id = $filters['id'] ?? null;
+        $title = $filters['title'] ?? '';
+        $status = $filters['status'] ?? null;
+        $requestedAdmin = filter_var($filters['admin'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $inAdmin = $requestedAdmin && $this->security->isGranted('ROLE_ADMIN');
         
+        $publish = isset($filters['publish']) 
+            ? filter_var($filters['publish'], FILTER_VALIDATE_BOOLEAN) 
+            : true;
+
+        $orderQuery = $filters['order'] ?? [];
+
+        if (!empty($orderQuery) && is_array($orderQuery)) {
+            $sortBy = (string) array_key_first($orderQuery);
+            $sortOrder = (string) ($orderQuery[$sortBy] ?? 'DESC');
+        } else {
+            $sortBy = $user->getSearchSortBy() ?? 'added';
+            $sortOrder = $user->getSearchSortOrder() ?? 'DESC';
+        }
+
         $userId = $user->getId();
         $searchStatus = $user->getSearchStatus() ?? '';
-        $sortBy = $user->getSearchSortBy() ?? 'added';
-        $sortOrder = $user->getSearchSortOrder() ?? 'DESC';
 
-        $limit = !$paginationEnabled ? null : ($user->getSearchItemsPerPage() ?? 20);
+        $limit = !$paginationEnabled ? null : (int) ($filters['itemsPerPage'] ?? $user->getSearchItemsPerPage() ?? 20);
 
-        $cacheKey = sprintf('webtoons_u%s_p%d_l%s_st%s_sb%s_so%s_t%s', $userId, $page, $limit ?? 'all', $searchStatus, $sortBy, $sortOrder, $title);
+        $cacheKey = sprintf(
+            'webtoons_u%s_pa%d_l%s_id%s_st%s_wst%s_sb%s_so%s_t%s_a%d_pu%d',
+            $userId,
+            $page,
+            $limit ?? 'all',
+            $id ?? 'none',
+            $searchStatus,
+            $status ?? 'none',
+            $sortBy,
+            $sortOrder,
+            md5($title),
+            (int) $inAdmin,
+            (int) $publish
+        );
 
-        $cachedData = $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $page, $title, $limit) {
+        $cachedData = $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $title, $page, $limit, $inAdmin, $publish, $id, $status, $sortBy, $sortOrder) {
+            $item->expiresAfter(new \DateInterval('P10D'));
             $item->tag(['webtoons_list', 'user_' . $user->getId()]);
 
-            return $this->webtoonRepository->findFilteredIdsForUser($user, $title, $page, $limit);
+            return $this->webtoonRepository->findFilteredIdsForUser(
+                user: $user,
+                searchTitle: $title,
+                page: $page,
+                limit: $limit,
+                inAdmin: $inAdmin,
+                publish: $publish,
+                id: $id,
+                status: $status,
+                sortBy: $sortBy,
+                sortOrder: $sortOrder
+            );
         });
 
         $webtoons = [];

@@ -28,6 +28,7 @@ security:
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
+            user_checker: App\Security\UserChecker 
 
     # Note: Only the *first* matching rule is applied
     access_control:
