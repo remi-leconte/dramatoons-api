@@ -38,8 +38,7 @@ final class WebtoonUserProcessor implements ProcessorInterface
 
         $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
-        $userId = $user ? $user->getId() : 'anon';
-        $this->cache->invalidateTags(['user_' . $userId]);
+        $this->cache->invalidateTags(['user_' . $user->getId()]);
 
         return $result;
     }

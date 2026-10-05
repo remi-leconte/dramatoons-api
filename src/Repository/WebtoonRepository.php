@@ -30,7 +30,7 @@ final class WebtoonRepository extends ServiceEntityRepository
         ?string $sortOrder = null
     ): array {
         $qb = $this->createQueryBuilder('w')
-            ->select('w.id');
+            ->select('DISTINCT w.id');
 
         if (!empty($id)) {
             $qb->andWhere('w.id = :id')

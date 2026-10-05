@@ -4,7 +4,6 @@ namespace App\Entity;
 
 use App\State\WebtoonProvider;
 use App\State\WebtoonProcessor;
-use App\State\WebtoonRemoveProcessor;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Get;
@@ -45,8 +44,7 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
         new Delete(
             normalizationContext: ['groups' => ['webtoon:read']],
             security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.hasOtherInteractions())",
-            securityMessage: "Vous ne pouvez pas supprimer ce Webtoon car d'autres utilisateurs ont déjà interagi avec.",
-            processor: WebtoonRemoveProcessor::class)
+            securityMessage: "Vous ne pouvez pas supprimer ce Webtoon car d'autres utilisateurs ont déjà interagi avec.")
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
@@ -130,7 +128,7 @@ final class Webtoon
     /**
      * @var Collection<int, WebtoonUser>
      */
-    #[ORM\OneToMany(targetEntity: WebtoonUser::class, mappedBy: 'webtoon')]
+    #[ORM\OneToMany(targetEntity: WebtoonUser::class, mappedBy: 'webtoon', cascade: ['remove'], orphanRemoval: true)]
     private Collection $readers;
 
     #[Groups(['webtoon:read'])]
