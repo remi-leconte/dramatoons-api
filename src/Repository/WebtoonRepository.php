@@ -30,7 +30,7 @@ final class WebtoonRepository extends ServiceEntityRepository
         ?string $sortOrder = null
     ): array {
         $qb = $this->createQueryBuilder('w')
-            ->select('w.id');
+            ->select('DISTINCT w.id');
 
         if (!empty($id)) {
             $qb->andWhere('w.id = :id')
@@ -57,7 +57,14 @@ final class WebtoonRepository extends ServiceEntityRepository
         }
 
         if (!empty($searchTitle)) {
-            $qb->andWhere('w.title LIKE :searchTitle')
+            $qb->leftJoin('w.title', 'main_title')
+               ->leftJoin('w.secondaryTitles', 'sec_titles')
+               ->andWhere(
+                   $qb->expr()->orX(
+                       'main_title.title LIKE :searchTitle',
+                       'sec_titles.title LIKE :searchTitle'
+                   )
+               )
                ->setParameter('searchTitle', '%' . $searchTitle . '%');
         }
 
@@ -81,7 +88,7 @@ final class WebtoonRepository extends ServiceEntityRepository
 
         match ($sortBy) {
             'id' => $qb->orderBy('w.id', $sortOrder),
-            'title' => $qb->orderBy('w.title', $sortOrder),
+            'title' => $qb->leftJoin('w.title', 'sort_title')->orderBy('sort_title.title', $sortOrder),
             'status' => $qb->orderBy('w.status', $sortOrder),
             'publish' => $qb->orderBy('w.publish', $sortOrder),
             'updated' => $qb->orderBy('w.updated', $sortOrder),

@@ -4,11 +4,11 @@ namespace App\State;
 
 use App\Entity\Webtoon;
 use App\Entity\User;
+use App\Entity\WebtoonTitle;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 /**
  * @implements ProcessorInterface<Webtoon, void>
@@ -18,8 +18,7 @@ final class WebtoonProcessor implements ProcessorInterface
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private ProcessorInterface $persistProcessor,
-        private Security $security,
-        private TagAwareCacheInterface $cache
+        private Security $security
     ) {
     }
 
@@ -34,12 +33,20 @@ final class WebtoonProcessor implements ProcessorInterface
             if ($user instanceof User && $data->getCreator() === null) {
                 $data->setCreator($user);
             }
+
+            if ($data->getTitle() instanceof WebtoonTitle) {
+                $webtoonTitle = $data->getTitle();
+
+                $webtoonTitle->setWebtoon($data);
+
+                if ($webtoonTitle->getId() === null) {
+                    $data->addSecondaryTitle($webtoonTitle);
+                }
+
+                $data->setTitle($webtoonTitle);
+            }
         }
 
-        $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
-        
-        $this->cache->invalidateTags(['webtoons_list']);
-
-        return $result;
+        return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
     }
 }

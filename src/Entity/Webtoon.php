@@ -4,7 +4,6 @@ namespace App\Entity;
 
 use App\State\WebtoonProvider;
 use App\State\WebtoonProcessor;
-use App\State\WebtoonRemoveProcessor;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Get;
@@ -45,19 +44,17 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
         new Delete(
             normalizationContext: ['groups' => ['webtoon:read']],
             security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.hasOtherInteractions())",
-            securityMessage: "Vous ne pouvez pas supprimer ce Webtoon car d'autres utilisateurs ont déjà interagi avec.",
-            processor: WebtoonRemoveProcessor::class)
+            securityMessage: "Vous ne pouvez pas supprimer ce Webtoon car d'autres utilisateurs ont déjà interagi avec.")
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'id' => 'exact',
-    'title' => 'partial',
+    'title.title' => 'partial',
     'status' => 'partial',
     'publish' => 'partial'
 ])]
 #[ApiFilter(OrderFilter::class, properties: [
     'id',
-    'title',
     'status',
     'publish',
     'updated'
@@ -70,9 +67,17 @@ final class Webtoon
     #[Groups(['webtoon:read'])]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(name: 'main_title_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     #[Groups(['webtoon:read', 'webtoon:write'])]
-    private ?string $title = null; // tous
+    private ?WebtoonTitle $title = null;
+
+    /**
+     * @var Collection<int, WebtoonTitle>
+     */
+    #[ORM\OneToMany(targetEntity: WebtoonTitle::class, mappedBy: 'webtoon', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['webtoon:read'])]
+    private Collection $secondaryTitles;
 
     #[ORM\ManyToOne(inversedBy: 'createdWebtoons')]
     #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
@@ -123,7 +128,7 @@ final class Webtoon
     /**
      * @var Collection<int, WebtoonUser>
      */
-    #[ORM\OneToMany(targetEntity: WebtoonUser::class, mappedBy: 'webtoon')]
+    #[ORM\OneToMany(targetEntity: WebtoonUser::class, mappedBy: 'webtoon', cascade: ['remove'], orphanRemoval: true)]
     private Collection $readers;
 
     #[Groups(['webtoon:read'])]
@@ -132,6 +137,7 @@ final class Webtoon
     public function __construct()
     {
         $this->readers = new ArrayCollection();
+        $this->secondaryTitles = new ArrayCollection();
 
         $this->created = new \DateTimeImmutable();
         $this->updated = new \DateTimeImmutable();
@@ -142,15 +148,52 @@ final class Webtoon
         return $this->id;
     }
 
-    public function getTitle(): ?string
+    public function getTitle(): ?WebtoonTitle
     {
         return $this->title;
     }
 
-    public function setTitle(string $title): static
+    public function setTitle(?WebtoonTitle $title): static
     {
         $this->title = $title;
-        $this->slug = (new AsciiSlugger())->slug($title)->lower()->toString();
+        if ($title !== null && $title->getTitle() !== null) {
+            $this->slug = (new AsciiSlugger())->slug($title->getTitle())->lower()->toString();
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, WebtoonTitle>
+     */
+    public function getSecondaryTitles(): Collection
+    {
+        if ($this->title === null) {
+            return $this->secondaryTitles;
+        }
+
+        return $this->secondaryTitles->filter(
+            fn(WebtoonTitle $t) => $t->getId() !== $this->title->getId()
+        );
+    }
+
+    public function addSecondaryTitle(WebtoonTitle $secondaryTitle): static
+    {
+        if (!$this->secondaryTitles->contains($secondaryTitle)) {
+            $this->secondaryTitles->add($secondaryTitle);
+            $secondaryTitle->setWebtoon($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSecondaryTitle(WebtoonTitle $secondaryTitle): static
+    {
+        if ($this->secondaryTitles->removeElement($secondaryTitle)) {
+            if ($secondaryTitle->getWebtoon() === $this) {
+                $secondaryTitle->setWebtoon(null);
+            }
+        }
 
         return $this;
     }
