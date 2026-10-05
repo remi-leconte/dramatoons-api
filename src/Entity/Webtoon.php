@@ -38,13 +38,13 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
             processor: WebtoonProcessor::class),
         new Patch(denormalizationContext: ['groups' => ['webtoon:write']],
             normalizationContext: ['groups' => ['webtoon:read']],
-            security: "is_granted('ROLE_MODO') or object.getCreator() == user",
-            securityMessage: "Seul un modérateur ou l'utilisateur propriétaire de ce webtoon peut le modifier.",
+            security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.hasOtherInteractions())",
+            securityMessage: "Impossible de modifier ce webtoon.",
             processor: WebtoonProcessor::class),
         new Delete(
             normalizationContext: ['groups' => ['webtoon:read']],
             security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.hasOtherInteractions())",
-            securityMessage: "Vous ne pouvez pas supprimer ce Webtoon car d'autres utilisateurs ont déjà interagi avec.")
+            securityMessage: "Impossible de supprimer ce webtoon.")
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
