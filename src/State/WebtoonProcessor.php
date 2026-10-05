@@ -4,6 +4,7 @@ namespace App\State;
 
 use App\Entity\Webtoon;
 use App\Entity\User;
+use App\Entity\WebtoonTitle;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -33,6 +34,18 @@ final class WebtoonProcessor implements ProcessorInterface
 
             if ($user instanceof User && $data->getCreator() === null) {
                 $data->setCreator($user);
+            }
+
+            if ($data->getTitle() instanceof WebtoonTitle) {
+                $webtoonTitle = $data->getTitle();
+
+                $webtoonTitle->setWebtoon($data);
+
+                if ($webtoonTitle->getId() === null) {
+                    $data->addSecondaryTitle($webtoonTitle);
+                }
+
+                $data->setTitle($webtoonTitle);
             }
         }
 
