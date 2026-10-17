@@ -29,13 +29,7 @@ final class AuthenticationSuccessListener
         $data['user'] = [
             'id' => $user->getId(),
             'login' => $user->getUserIdentifier(),
-            'roles' => $user->getRoles(),
-            'searchParameters' => [
-                'sortBy' => $user->getSearchSortBy(),
-                'sortOrder' => $user->getSearchSortOrder(),
-                'status' => $user->getSearchStatus(),
-                'itemsPerPage' => $user->getSearchItemsPerPage()
-            ]
+            'roles' => $user->getRoles()
         ];
 
         $event->setData($data);

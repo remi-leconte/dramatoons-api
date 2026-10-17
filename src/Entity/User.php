@@ -106,22 +106,6 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'resetToken', length: 255, nullable: true)]
     private ?string $resetToken = null;
 
-    #[ORM\Column(name: 'searchSortBy', length: 255, nullable: true)]
-    #[Groups(['user:read:owner', 'user:write:owner'])]
-    private ?string $searchSortBy = null;
-
-    #[ORM\Column(name: 'searchSortOrder', length: 255, nullable: true)]
-    #[Groups(['user:read:owner', 'user:write:owner'])]
-    private ?string $searchSortOrder = null;
-
-    #[ORM\Column(name: 'searchStatus', length: 255, nullable: true)]
-    #[Groups(['user:read:owner', 'user:write:owner'])]
-    private ?string $searchStatus = null;
-
-    #[ORM\Column(name: 'searchItemsPerPage', nullable: true)]
-    #[Groups(['user:read:owner', 'user:write:owner'])]
-    private ?int $searchItemsPerPage = null;
-
     #[ORM\Column(name: 'rememberToken', length: 64, nullable: true)]
     #[Groups(['user:read:owner', 'user:write:owner'])]
     private ?string $rememberToken = null;
@@ -274,54 +258,6 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setResetToken(?string $resetToken): static
     {
         $this->resetToken = $resetToken;
-
-        return $this;
-    }
-
-    public function getSearchSortBy(): ?string
-    {
-        return $this->searchSortBy;
-    }
-
-    public function setSearchSortBy(?string $searchSortBy): static
-    {
-        $this->searchSortBy = $searchSortBy;
-
-        return $this;
-    }
-
-    public function getSearchSortOrder(): ?string
-    {
-        return $this->searchSortOrder;
-    }
-
-    public function setSearchSortOrder(?string $searchSortOrder): static
-    {
-        $this->searchSortOrder = $searchSortOrder;
-
-        return $this;
-    }
-
-    public function getSearchStatus(): ?string
-    {
-        return $this->searchStatus;
-    }
-
-    public function setSearchStatus(?string $searchStatus): static
-    {
-        $this->searchStatus = $searchStatus;
-
-        return $this;
-    }
-
-    public function getSearchItemsPerPage(): ?int
-    {
-        return $this->searchItemsPerPage;
-    }
-
-    public function setSearchItemsPerPage(?int $searchItemsPerPage): static
-    {
-        $this->searchItemsPerPage = $searchItemsPerPage;
 
         return $this;
     }
