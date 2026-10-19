@@ -59,7 +59,7 @@ final class WebtoonRepository extends ServiceEntityRepository
                              || (!empty($params['exclude_status']) && is_array($params['exclude_status']));
 
             if ($hasStatusFilters) {
-                $qb->innerJoin('w.readers', 'wu', 'WITH', 'wu.reader = :user')
+                $qb->leftJoin('w.readers', 'wu', 'WITH', 'wu.reader = :user')
                    ->setParameter('user', $user);
 
                 if (!empty($params['status']) && is_array($params['status'])) {
@@ -68,7 +68,7 @@ final class WebtoonRepository extends ServiceEntityRepository
                 }
 
                 if (!empty($params['exclude_status']) && is_array($params['exclude_status'])) {
-                    $qb->andWhere('wu.state NOT IN (:excludedStatuses)')
+                    $qb->andWhere('(wu.state NOT IN (:excludedStatuses) OR wu.state IS NULL)')
                        ->setParameter('excludedStatuses', $params['exclude_status']);
                 }
             }
@@ -109,6 +109,7 @@ final class WebtoonRepository extends ServiceEntityRepository
                                 ->orderBy('user_rate', $params['sortOrder']),
             default => $qb->orderBy('w.created', $params['sortOrder']),
         };
+        $t = $qb->getQuery()->getSQL();
 
         $countQb = clone $qb;
         $totalItems = (int) $countQb->select('COUNT(DISTINCT w.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
