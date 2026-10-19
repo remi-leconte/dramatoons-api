@@ -51,7 +51,7 @@ final class WebtoonRepository extends ServiceEntityRepository
                     'wu.rate IS NOT NULL'
                 )
             );
-        } elseif ($params['mode'] === 'catalogue') {
+        } elseif ($params['mode'] === 'catalogue' || $params['mode'] === 'search') {
             $qb->andWhere('w.publish = :publish')
                ->setParameter('publish', true);
 

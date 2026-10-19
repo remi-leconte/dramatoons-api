@@ -37,7 +37,7 @@ final class WebtoonProvider implements ProviderInterface
         $limit = (int) ($filters['itemsPerPage'] ?? 10); // admin
 
         $queryParams = [
-            'mode' => ($filters['mode'] === 'admin' && $this->security->isGranted('ROLE_ADMIN')) ? 'admin' : (in_array($filters['mode'], ['catalogue', 'bibliotheque'], true) ? $filters['mode'] : 'bibliotheque'), // admin / catalogue / bibliotheque
+            'mode' => ($filters['mode'] === 'admin' && $this->security->isGranted('ROLE_ADMIN')) ? 'admin' : (in_array($filters['mode'], ['catalogue', 'bibliotheque', 'search'], true) ? $filters['mode'] : 'bibliotheque'), // admin / catalogue / bibliotheque / search
             'title' => $filters['title'] ?? '', // admin / bibliothèque / catalogue
             'status' => $filters['status'] ?? [], // bibliothèque / catalogue
             'exclude_status' => $filters['exclude_status'] ?? [], // bibliothèque / catalogue
