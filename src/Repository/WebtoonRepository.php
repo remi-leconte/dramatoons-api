@@ -77,6 +77,17 @@ final class WebtoonRepository extends ServiceEntityRepository
                 $qb->andWhere('w.publish = :publish')
                    ->setParameter('publish', false);
             }
+        } elseif ($params['mode'] === 'ext') {
+            $qb->innerJoin('w.readers', 'wu', 'WITH', 'wu.reader = :user')
+                ->setParameter('user', $user);
+
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    'wu.state IS NOT NULL',
+                    'wu.bookmark IS NOT NULL and wu.bookmark != 0',
+                    'wu.rate IS NOT NULL'
+                )
+            );
         }
 
         if (!empty($params['title'])) {
@@ -109,7 +120,6 @@ final class WebtoonRepository extends ServiceEntityRepository
                                 ->orderBy('user_rate', $params['sortOrder']),
             default => $qb->orderBy('w.created', $params['sortOrder']),
         };
-        $t = $qb->getQuery()->getSQL();
 
         $countQb = clone $qb;
         $totalItems = (int) $countQb->select('COUNT(DISTINCT w.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
