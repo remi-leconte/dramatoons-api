@@ -33,11 +33,12 @@ final class WebtoonProvider implements ProviderInterface
             return [];
         }
         
+        $paginationEnabled = filter_var($filters['pagination'] ?? true, FILTER_VALIDATE_BOOLEAN);
         $page = max(1, (int) ($filters['page'] ?? 1));
-        $limit = (int) ($filters['itemsPerPage'] ?? 10); // admin
+        $limit = !$paginationEnabled ? null : (int) ($filters['itemsPerPage'] ?? 20); // admin / ext
 
         $queryParams = [
-            'mode' => ($filters['mode'] === 'admin' && $this->security->isGranted('ROLE_ADMIN')) ? 'admin' : (in_array($filters['mode'], ['catalogue', 'bibliotheque', 'search'], true) ? $filters['mode'] : 'bibliotheque'), // admin / catalogue / bibliotheque / search
+            'mode' => ($filters['mode'] === 'admin' && $this->security->isGranted('ROLE_ADMIN')) ? 'admin' : (in_array($filters['mode'], ['catalogue', 'bibliotheque', 'search', 'ext'], true) ? $filters['mode'] : 'bibliotheque'), // admin / catalogue / bibliotheque / search
             'title' => $filters['title'] ?? '', // admin / bibliothèque / catalogue
             'status' => $filters['status'] ?? [], // bibliothèque / catalogue
             'exclude_status' => $filters['exclude_status'] ?? [], // bibliothèque / catalogue
@@ -62,6 +63,10 @@ final class WebtoonProvider implements ProviderInterface
         $webtoons = [];
         if (!empty($cachedData['ids'])) {
             $webtoons = $this->webtoonRepository->findByIdsWithUserProgress($cachedData['ids'], $user);
+        }
+
+        if (!$paginationEnabled) {
+            return $webtoons;
         }
 
         return new TraversablePaginator(
