@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 #[ApiResource]
 #[Post(
@@ -53,7 +54,8 @@ final class UploadWebtoonCover implements ProcessorInterface
     public function __construct(
         private RequestStack $requestStack,
         private WebtoonRepository $webtoonRepository,
-        private EntityManagerInterface $em
+        private EntityManagerInterface $em,
+        private TagAwareCacheInterface $cache
     ) {}
 
     /**
@@ -74,6 +76,7 @@ final class UploadWebtoonCover implements ProcessorInterface
         if ($uploadedFile instanceof UploadedFile) {
             $webtoon->setImageFile($uploadedFile);
             $this->em->flush();
+            $this->cache->invalidateTags(['webtoons_list']);
         }
 
         return $webtoon;
