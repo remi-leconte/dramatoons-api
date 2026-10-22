@@ -1,4 +1,4 @@
-FROM php:8.4-fpm-alpine AS base
+FROM php:8.4-fpm-alpine3.24 AS base
 
 RUN sed -i 's|/sbin/nologin|/bin/sh|g' /etc/passwd
 
