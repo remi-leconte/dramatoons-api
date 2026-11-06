@@ -27,7 +27,8 @@ docker compose exec php php bin/console app:create-deleted-user   # compte « Ut
   - `WebtoonProvider` : listing de `GET /webtoons` ;
   - `WebtoonProcessor` : affecte le créateur et le titre ;
   - `WebtoonUserProcessor` : force `reader` = utilisateur courant ;
-  - `UserProcessor` : hash du mot de passe, mail de vérification.
+  - `UserProcessor` : hash du mot de passe, mail de vérification ;
+  - `UserDeleteProcessor` : à la suppression d'un compte, supprime ses webtoons dépubliés suivis par personne d'autre que lui, attribue les autres au compte « Utilisateur supprimé » (`User::DELETED_USER_LOGIN`), qui lui-même ne peut pas être supprimé.
 - `src/Repository/WebtoonRepository.php` : requêtes du listing.
 - `src/Serializer/UserContextBuilder.php` : ajoute des groupes selon le rôle :
   - `webtoon:write:modo` (`publish`) à partir de MODO ;
@@ -49,7 +50,7 @@ docker compose exec php php bin/console app:create-deleted-user   # compte « Ut
 | `/users` (CRUD) | `POST` = inscription. `PATCH` et `DELETE` : admin ou soi-même |
 | `POST /users/verify`, `/users/resend-verification` | Validation de l'email |
 | `POST /users/forgot-password`, `/users/reset-password` | Mot de passe oublié |
-| `/webtoons` (CRUD) | `PATCH` et `DELETE` : MODO, ou créateur si aucun autre lecteur n'a interagi (`hasOtherInteractions()`) |
+| `/webtoons` (CRUD) | `PATCH` et `DELETE` : MODO, ou créateur si personne d'autre ne le suit (`isFollowedByOtherThanCreator()`) |
 | `POST /webtoons/{id}/cover` | Multipart `file`, JPEG ≤ 1 Mo, enregistré dans `public/upload/cover/webtoon_presentation_{slug}.jpg` (VichUploader) |
 | `/webtoon_titles` (CRUD) | `PATCH` et `DELETE` : MODO ou créateur du webtoon |
 | `/webtoon_users` (CRUD) | Suivi de l'utilisateur courant |

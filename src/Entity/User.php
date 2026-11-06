@@ -3,6 +3,7 @@
 
 namespace App\Entity;
 
+use App\State\UserDeleteProcessor;
 use App\State\UserProcessor;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
@@ -47,7 +48,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
         ),
         new Delete(
             security: "is_granted('ROLE_ADMIN') or object == user",
-            securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce compte peut le supprimer."
+            securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce compte peut le supprimer.",
+            processor: UserDeleteProcessor::class
         )
     ]
 )]
@@ -66,6 +68,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
 ])]
 final class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    /** Compte qui reçoit les webtoons des comptes supprimés (créé par app:create-deleted-user). */
+    public const DELETED_USER_LOGIN = 'Utilisateur supprimé';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
