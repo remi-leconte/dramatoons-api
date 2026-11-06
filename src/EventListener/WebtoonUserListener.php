@@ -19,7 +19,8 @@ final class WebtoonUserListener
     public function recalculate(WebtoonUser $webtoonUser): void
     {
         $webtoon = $webtoonUser->getWebtoon();
-        if ($webtoon) {
+        // Sans id : le webtoon vient d'être supprimé, il ne faut pas recalculer de statistique
+        if ($webtoon && null !== $webtoon->getId()) {
             $this->webtoonUserRepository->updateWebtoonStats($webtoon);
         }
     }
