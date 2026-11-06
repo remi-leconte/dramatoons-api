@@ -38,12 +38,12 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
             processor: WebtoonProcessor::class),
         new Patch(denormalizationContext: ['groups' => ['webtoon:write']],
             normalizationContext: ['groups' => ['webtoon:read']],
-            security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.hasOtherInteractions())",
+            security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.isFollowedByOtherThanCreator())",
             securityMessage: "Impossible de modifier ce webtoon.",
             processor: WebtoonProcessor::class),
         new Delete(
             normalizationContext: ['groups' => ['webtoon:read']],
-            security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.hasOtherInteractions())",
+            security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.isFollowedByOtherThanCreator())",
             securityMessage: "Impossible de supprimer ce webtoon.")
     ]
 )]
@@ -385,10 +385,17 @@ final class Webtoon
         return $this;
     }
 
-    public function hasOtherInteractions(): bool
+    /**
+     * Vrai si au moins un utilisateur autre que le créateur suit le webtoon :
+     * un webtoonUser dont rate, state ou bookmark est renseigné.
+     */
+    public function isFollowedByOtherThanCreator(): bool
     {
         foreach ($this->readers as $reader) {
-            if ($reader->getReader() !== $this->creator) {
+            if (
+                $reader->getReader() !== $this->creator
+                && (null !== $reader->getRate() || null !== $reader->getState() || null !== $reader->getBookmark())
+            ) {
                 return true;
             }
         }
