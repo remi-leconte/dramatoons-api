@@ -6,7 +6,6 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
@@ -29,20 +28,27 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 )]
 #[ApiResource(
     operations: [
-        new GetCollection(),
-        new Get(),
+        new GetCollection(security: "is_granted('ROLE_MODO')"),
+        new Get(
+            security: "object.getReader() == user or is_granted('ROLE_MODO')",
+            securityMessage: "Ce suivi ne vous appartient pas."
+        ),
         new Post(
             security: "is_granted('ROLE_USER')",
-            denormalizationContext: ['groups' => ['webtoon_user:write']],
+            denormalizationContext: ['groups' => ['webtoon_user:write', 'webtoon_user:create']],
             normalizationContext: ['groups' => ['webtoon:read'], 'skip_null_values' => false],
             processor: WebtoonUserProcessor::class
         ),
-        new Put(denormalizationContext: ['groups' => ['webtoon_user:write']]),
         new Patch(
+            security: "object.getReader() == user",
+            securityMessage: "Ce suivi ne vous appartient pas.",
             denormalizationContext: ['groups' => ['webtoon_user:write']],
             processor: WebtoonUserProcessor::class
         ),
-        new Delete(),
+        new Delete(
+            security: "object.getReader() == user",
+            securityMessage: "Ce suivi ne vous appartient pas."
+        ),
     ],
     normalizationContext: ['groups' => ['webtoon_user:read', 'webtoon:read'], 'skip_null_values' => false]
 )]
@@ -61,7 +67,7 @@ final class WebtoonUser
 
     #[ORM\ManyToOne(inversedBy: 'readers')]
     #[ORM\JoinColumn(name: 'webtoon_id', nullable: false)]
-    #[Groups(['webtoon_user:read', 'webtoon_user:write'])]
+    #[Groups(['webtoon_user:read', 'webtoon_user:create'])]
     private ?Webtoon $webtoon = null;
 
     #[ORM\Column(nullable: true)]
