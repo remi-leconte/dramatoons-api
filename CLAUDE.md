@@ -53,7 +53,7 @@ docker compose exec php php bin/console app:create-deleted-user   # compte « Ut
 | `/webtoons` (CRUD) | `PATCH` et `DELETE` : MODO, ou créateur si personne d'autre ne le suit (`isFollowedByOtherThanCreator()`) |
 | `POST /webtoons/{id}/cover` | Multipart `file`, JPEG ≤ 1 Mo, enregistré dans `public/upload/cover/webtoon_presentation_{slug}.jpg` (VichUploader) |
 | `/webtoon_titles` (CRUD) | `PATCH` et `DELETE` : MODO ou créateur du webtoon |
-| `/webtoon_users` (CRUD) | Suivi de l'utilisateur courant |
+| `/webtoon_users` (sans `PUT`) | Liste : MODO. Détail : le lecteur ou MODO. `PATCH`/`DELETE` : le lecteur seulement. `reader` et `webtoon` fixés à la création |
 
 ## Listing `GET /webtoons`
 - **`mode`** (obligatoire, réponse vide sinon) :

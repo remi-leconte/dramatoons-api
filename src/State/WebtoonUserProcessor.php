@@ -3,6 +3,7 @@
 namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\WebtoonUser;
 use App\Entity\User;
@@ -27,7 +28,7 @@ final class WebtoonUserProcessor implements ProcessorInterface
         /** @var User|null $user */
         $user = $this->security->getUser();
         
-        if ($user instanceof User) {
+        if ($operation instanceof Post && $user instanceof User) {
             $data->setReader($user);
         }
 
