@@ -28,7 +28,7 @@ final class UserContextBuilder implements SerializerContextBuilderInterface
             if ($this->security->isGranted('ROLE_MODO')) {
                 $this->addGroupIfMissing($context, 'webtoon:write:modo'); // publish
                 if ($this->security->isGranted('ROLE_ADMIN')) {
-                    $this->addGroupIfMissing($context, 'user:read:owner'); // id, email
+                    $this->addGroupIfMissing($context, 'user:read:owner');
                 }
                 if (!$normalization) { // POST, PUT, PATCH
                     $this->addGroupIfMissing($context, 'user:patch:owner'); // email, password, login
