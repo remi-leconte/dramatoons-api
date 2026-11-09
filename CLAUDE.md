@@ -14,11 +14,13 @@ docker compose exec php php bin/console doctrine:migrations:diff  # après modif
 docker compose exec php php bin/console doctrine:migrations:migrate
 docker compose exec php php bin/console app:create-admin          # admin initial, via INITIAL_ADMIN_*
 docker compose exec php php bin/console app:create-deleted-user   # compte « Utilisateur supprimé », via DELETED_USER_PASSWORD
+docker compose exec php php bin/console app:test-data             # dev : supprime et recrée les données de test
 ```
 
 - Les fichiers `compose.prod.yml` et `compose.staging.yml` se superposent à `compose.yml`.
 - En prod et staging, l'entrypoint génère les clés JWT et applique les migrations. En dev, les migrations se lancent à la main.
 - Il n'y a pas de tests automatisés.
+- Données de test (`src/Command/TestDataCommand.php`, dev uniquement) : comptes `test-…` (admin, modo, créateur, lecteur, inconnu, désactivé, non vérifié ; mot de passe `test-password`) et webtoons `[TEST] …` couvrant chaque cas de publication et de suivi. Utilisées par l'agent `testeur`.
 
 ## Organisation
 - `src/Entity/` : entités ; leurs `#[ApiResource]` définissent opérations, `security` et groupes.
