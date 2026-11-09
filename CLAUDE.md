@@ -56,7 +56,7 @@ docker compose exec php php bin/console app:create-deleted-user   # compte « Ut
 | `/webtoons` (CRUD) | `GET /webtoons/{id}` : `WEBTOON_VIEW`. `PATCH` et `DELETE` : `WEBTOON_EDIT` |
 | `POST /webtoons/{id}/cover` | `WEBTOON_EDIT`. Multipart `file`, JPEG ≤ 1 Mo, enregistré dans `public/upload/cover/webtoon_presentation_{slug}.jpg` (VichUploader) |
 | `/webtoon_titles` (CRUD) | Liste : MODO. Détail : `WEBTOON_VIEW`, et `POST`, `PATCH`, `DELETE` : `WEBTOON_EDIT`, sur le webtoon du titre |
-| `/webtoon_users` (sans `PUT`) | Liste : MODO. Détail : le lecteur ou MODO. `PATCH`/`DELETE` : le lecteur seulement. `reader` et `webtoon` fixés à la création |
+| `/webtoon_users` (sans `PUT`) | Liste : MODO. Détail : le lecteur ou MODO. `PATCH`/`DELETE` : le lecteur seulement. `reader` et `webtoon` fixés à la création. Un suivi vide (sans note ni état, chapitre vide ou 0) est refusé (422) : le front le supprime |
 
 ## Listing `GET /webtoons`
 - **`mode`** (obligatoire, réponse vide sinon) :

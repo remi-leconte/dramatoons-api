@@ -15,6 +15,7 @@ use App\Repository\WebtoonUserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiFilter(SearchFilter::class, properties: [
     'reader' => 'exact',
@@ -25,6 +26,10 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
     fields: ['reader', 'webtoon'],
     message: 'Vous suivez déjà ce webtoon.',
     errorPath: 'webtoon'
+)]
+#[Assert\Expression(
+    'this.isFollowing()',
+    message: 'Un suivi doit avoir une note, un état ou un chapitre : supprimez-le plutôt que de le vider.'
 )]
 #[ApiResource(
     operations: [
@@ -47,7 +52,8 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
         ),
         new Delete(
             security: "object.getReader() == user",
-            securityMessage: "Ce suivi ne vous appartient pas."
+            securityMessage: "Ce suivi ne vous appartient pas.",
+            processor: WebtoonUserProcessor::class
         ),
     ],
     normalizationContext: ['groups' => ['webtoon_user:read', 'webtoon:read'], 'skip_null_values' => false]
@@ -130,7 +136,7 @@ final class WebtoonUser
 
     public function setState(?string $state): static
     {
-        $this->state = $state;
+        $this->state = '' === $state ? null : $state;
 
         return $this;
     }
@@ -149,6 +155,6 @@ final class WebtoonUser
 
     public function isFollowing(): bool
     {
-        return null !== $this->rate || null !== $this->state || null !== $this->bookmark;
+        return null !== $this->rate || null !== $this->state || (null !== $this->bookmark && 0 !== $this->bookmark);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\State;
 
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
@@ -18,6 +19,8 @@ final class WebtoonUserProcessor implements ProcessorInterface
     public function __construct(
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private ProcessorInterface $persistProcessor,
+        #[Autowire(service: 'api_platform.doctrine.orm.state.remove_processor')]
+        private ProcessorInterface $removeProcessor,
         private Security $security,
         private ValidatorInterface $validator,
         private TagAwareCacheInterface $cache
@@ -28,6 +31,13 @@ final class WebtoonUserProcessor implements ProcessorInterface
         /** @var User|null $user */
         $user = $this->security->getUser();
         
+        if ($operation instanceof Delete) {
+            $this->removeProcessor->process($data, $operation, $uriVariables, $context);
+            $this->cache->invalidateTags(['user_' . $data->getReader()->getId()]);
+
+            return null;
+        }
+
         if ($operation instanceof Post && $user instanceof User) {
             $data->setReader($user);
         }
