@@ -7,10 +7,13 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Repository\WebtoonRepository;
+use App\Security\WebtoonVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
@@ -55,7 +58,8 @@ final class UploadWebtoonCover implements ProcessorInterface
         private RequestStack $requestStack,
         private WebtoonRepository $webtoonRepository,
         private EntityManagerInterface $em,
-        private TagAwareCacheInterface $cache
+        private TagAwareCacheInterface $cache,
+        private Security $security
     ) {}
 
     /**
@@ -68,6 +72,11 @@ final class UploadWebtoonCover implements ProcessorInterface
 
         if (!$webtoon) {
             throw new NotFoundHttpException('Webtoon non trouvé.');
+        }
+
+        // La couverture suit les droits du webtoon (WebtoonVoter)
+        if (!$this->security->isGranted(WebtoonVoter::EDIT, $webtoon)) {
+            throw new AccessDeniedHttpException('Impossible de modifier la couverture de ce webtoon.');
         }
 
         $request = $this->requestStack->getCurrentRequest();

@@ -40,6 +40,7 @@ docker compose exec php php bin/console app:create-deleted-user   # compte « Ut
   - `lastLogin` et `user` dans la réponse de `/login`.
 - `src/Service/UserMailer.php` : mails de vérification et de mot de passe oublié. Lien `FRONTEND_URL/verify?token=` ou `/reset-password?token=`, valable 1 h ; les deux utilisent `User.resetToken`.
 - `src/Security/UserChecker.php` : refuse la connexion si `User.publish` est faux.
+- `src/Security/WebtoonVoter.php` : droit `WEBTOON_EDIT` (webtoon, titres, couverture) : MODO, ou créateur d'un webtoon dépublié que personne d'autre ne suit.
 
 ## Endpoints
 | Endpoint | Rôle |
@@ -50,9 +51,9 @@ docker compose exec php php bin/console app:create-deleted-user   # compte « Ut
 | `/users` (CRUD) | `POST` = inscription. `PATCH` et `DELETE` : admin ou soi-même |
 | `POST /users/verify`, `/users/resend-verification` | Validation de l'email |
 | `POST /users/forgot-password`, `/users/reset-password` | Mot de passe oublié |
-| `/webtoons` (CRUD) | `PATCH` et `DELETE` : MODO, ou créateur si personne d'autre ne le suit (`isFollowedByOtherThanCreator()`) |
-| `POST /webtoons/{id}/cover` | Multipart `file`, JPEG ≤ 1 Mo, enregistré dans `public/upload/cover/webtoon_presentation_{slug}.jpg` (VichUploader) |
-| `/webtoon_titles` (CRUD) | `PATCH` et `DELETE` : MODO ou créateur du webtoon |
+| `/webtoons` (CRUD) | `PATCH` et `DELETE` : `WEBTOON_EDIT` |
+| `POST /webtoons/{id}/cover` | `WEBTOON_EDIT`. Multipart `file`, JPEG ≤ 1 Mo, enregistré dans `public/upload/cover/webtoon_presentation_{slug}.jpg` (VichUploader) |
+| `/webtoon_titles` (CRUD) | `POST`, `PATCH` et `DELETE` : `WEBTOON_EDIT` sur le webtoon du titre |
 | `/webtoon_users` (sans `PUT`) | Liste : MODO. Détail : le lecteur ou MODO. `PATCH`/`DELETE` : le lecteur seulement. `reader` et `webtoon` fixés à la création |
 
 ## Listing `GET /webtoons`

@@ -20,9 +20,23 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new GetCollection(),
         new Get(),
-        new Post(security: "is_granted('ROLE_USER')"),
-        new Patch(security: "is_granted('ROLE_MODO') or object.getWebtoon().getCreator() == user"),
-        new Delete(security: "is_granted('ROLE_MODO') or object.getWebtoon().getCreator() == user"),
+        // Les titres suivent les droits du webtoon associé (WebtoonVoter)
+        new Post(
+            security: "is_granted('ROLE_USER')",
+            securityPostDenormalize: "is_granted('WEBTOON_EDIT', object.getWebtoon())",
+            securityPostDenormalizeMessage: "Impossible d'ajouter un titre à ce webtoon."
+        ),
+        new Patch(
+            security: "is_granted('WEBTOON_EDIT', object.getWebtoon())",
+            securityMessage: "Impossible de modifier ce titre.",
+            // Si le titre est rattaché à un autre webtoon, il faut aussi le droit sur celui-ci
+            securityPostDenormalize: "is_granted('WEBTOON_EDIT', object.getWebtoon())",
+            securityPostDenormalizeMessage: "Impossible de modifier ce titre."
+        ),
+        new Delete(
+            security: "is_granted('WEBTOON_EDIT', object.getWebtoon())",
+            securityMessage: "Impossible de supprimer ce titre."
+        ),
     ],
     normalizationContext: ['groups' => ['webtoon_title:read', 'webtoon:read']],
     denormalizationContext: ['groups' => ['webtoon_title:write']],
