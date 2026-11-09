@@ -35,7 +35,8 @@ docker compose exec php php bin/console app:test-data             # dev : suppri
 - `src/Serializer/UserContextBuilder.php` : ajoute des groupes selon le rôle :
   - `webtoon:write:modo` (`publish`) à partir de MODO ;
   - `user:patch:owner` (email, mot de passe, login) au propriétaire et aux MODO ;
-  - `user:patch:admin` (rôles) et `user:read:owner` (id, email) à l'admin.
+  - `user:read:owner` (id, email, rôles, état, dates de modification et de dernière connexion) au propriétaire et à l'admin ;
+  - `user:patch:admin` (rôles) à l'admin.
 - `src/EventListener/` :
   - recalcul des stats d'un webtoon (`WebtoonUserListener`) ;
   - invalidation du cache (`WebtoonCacheInvalidatorListener`) ;
@@ -52,7 +53,7 @@ docker compose exec php php bin/console app:test-data             # dev : suppri
 | `POST /login` `{login, password}` | Renvoie `token`, `refresh_token`, `user {id, login, roles}` |
 | `POST /token/refresh` `{refresh_token}` | Nouveau JWT |
 | `GET /me` | `id`, `email`, `username`, `total` (nombre de webtoons suivis) |
-| `/users` (CRUD) | `POST` = inscription. `PATCH` et `DELETE` : admin ou soi-même |
+| `/users` (CRUD) | Liste : admin. Détail : connecté (`login`, `role`, `created` ; le reste au propriétaire et à l'admin). `POST` = inscription. `PATCH` et `DELETE` : admin ou soi-même |
 | `POST /users/verify`, `/users/resend-verification` | Validation de l'email |
 | `POST /users/forgot-password`, `/users/reset-password` | Mot de passe oublié |
 | `/webtoons` (CRUD) | `GET /webtoons/{id}` : `WEBTOON_VIEW`. `PATCH` et `DELETE` : `WEBTOON_EDIT` |

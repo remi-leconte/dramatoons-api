@@ -32,8 +32,14 @@ use Symfony\Component\Security\Core\User\UserInterface;
     paginationClientItemsPerPage: true,
     paginationItemsPerPage: 20,
     operations: [
-        new GetCollection(normalizationContext: ['groups' => ['user:read']]),
-        new Get(normalizationContext: ['groups' => ['user:read']]),
+        new GetCollection(
+            normalizationContext: ['groups' => ['user:read']],
+            security: "is_granted('ROLE_ADMIN')"
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['user:read']],
+            security: "is_granted('ROLE_USER')"
+        ),
         new Post(
             denormalizationContext: ['groups' => ['user:write']],
             normalizationContext: ['groups' => ['user:read']],
@@ -84,7 +90,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $email = null;
 
     #[ORM\Column(type: 'json')]
-    #[Groups(['user:read', 'user:patch:admin'])]
+    #[Groups(['user:read:owner', 'user:patch:admin'])]
     private ?array $roles = null;
 
     #[ORM\Column(length: 255)]
@@ -102,7 +108,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?\DateTimeInterface $created = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read:owner'])]
     private ?\DateTimeInterface $updated = null;
 
     #[ORM\Column(name: 'resetTokenExpiration', type: 'datetime_immutable', nullable: true)]
@@ -112,7 +118,6 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $resetToken = null;
 
     #[ORM\Column(name: 'rememberToken', length: 64, nullable: true)]
-    #[Groups(['user:read:owner', 'user:write:owner'])]
     private ?string $rememberToken = null;
 
     #[ORM\Column(type: 'boolean', nullable: true, options: ['default' => true])]
@@ -124,7 +129,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?bool $verified = null;
 
     #[ORM\Column(name: 'lastLogin', type: 'datetime_immutable', nullable: true)]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read:owner'])]
     private ?\DateTimeInterface $lastLogin = null;
 
     /**
@@ -186,6 +191,18 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
         $roles[] = 'ROLE_USER';
 
         return array_unique($roles);
+    }
+
+    #[Groups(['user:read'])]
+    public function getRole(): string
+    {
+        $roles = $this->getRoles();
+
+        return match (true) {
+            in_array('ROLE_ADMIN', $roles, true) => 'ROLE_ADMIN',
+            in_array('ROLE_MODO', $roles, true) => 'ROLE_MODO',
+            default => 'ROLE_USER',
+        };
     }
 
     public function setRoles(array $roles): static
