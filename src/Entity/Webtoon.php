@@ -31,7 +31,9 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
         new GetCollection(
             normalizationContext: ['groups' => ['webtoon:read']],
             provider: WebtoonProvider::class),
-        new Get(normalizationContext: ['groups' => ['webtoon:read']]),
+        new Get(
+            normalizationContext: ['groups' => ['webtoon:read']],
+            security: "is_granted('WEBTOON_VIEW', object)"),
         new Post(
             denormalizationContext: ['groups' => ['webtoon:write']],
             normalizationContext: ['groups' => ['webtoon:read']],
@@ -392,10 +394,18 @@ final class Webtoon
     public function isFollowedByOtherThanCreator(): bool
     {
         foreach ($this->readers as $reader) {
-            if (
-                $reader->getReader() !== $this->creator
-                && (null !== $reader->getRate() || null !== $reader->getState() || null !== $reader->getBookmark())
-            ) {
+            if ($reader->getReader() !== $this->creator && $reader->isFollowing()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isFollowedBy(User $user): bool
+    {
+        foreach ($this->readers as $reader) {
+            if ($reader->getReader()?->getId() === $user->getId() && $reader->isFollowing()) {
                 return true;
             }
         }

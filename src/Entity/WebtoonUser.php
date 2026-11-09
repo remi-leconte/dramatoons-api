@@ -146,4 +146,9 @@ final class WebtoonUser
 
         return $this;
     }
+
+    public function isFollowing(): bool
+    {
+        return null !== $this->rate || null !== $this->state || null !== $this->bookmark;
+    }
 }

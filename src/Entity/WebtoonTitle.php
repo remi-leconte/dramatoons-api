@@ -18,8 +18,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: WebtoonTitleRepository::class)]
 #[ApiResource(
     operations: [
-        new GetCollection(),
-        new Get(),
+        new GetCollection(security: "is_granted('ROLE_MODO')"),
+        new Get(security: "is_granted('WEBTOON_VIEW', object.getWebtoon())"),
         // Les titres suivent les droits du webtoon associé (WebtoonVoter)
         new Post(
             security: "is_granted('ROLE_USER')",
