@@ -40,6 +40,8 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new Post(
             security: "is_granted('ROLE_USER')",
+            securityPostDenormalize: "is_granted('WEBTOON_VIEW', object.getWebtoon())",
+            securityPostDenormalizeMessage: "Webtoon introuvable.",
             denormalizationContext: ['groups' => ['webtoon_user:write', 'webtoon_user:create']],
             normalizationContext: ['groups' => ['webtoon:read'], 'skip_null_values' => false],
             processor: WebtoonUserProcessor::class
