@@ -23,7 +23,7 @@ final class WebtoonUserRepository extends ServiceEntityRepository
         $stats = $this->createQueryBuilder('wu')
             ->select(
                 'AVG(wu.rate) as avgRating',
-                'SUM(CASE WHEN (wu.state IS NOT NULL AND wu.state != :breakState) OR wu.rate IS NOT NULL THEN 1 ELSE 0 END) as readersCount'
+                'SUM(CASE WHEN wu.state IS NULL OR wu.state != :breakState THEN 1 ELSE 0 END) as readersCount'
             )
             ->where('wu.webtoon = :webtoon')
             ->setParameter('webtoon', $webtoon)
