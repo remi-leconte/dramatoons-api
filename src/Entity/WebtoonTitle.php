@@ -80,6 +80,11 @@ class WebtoonTitle
     {
         $this->title = $title;
 
+        // Met à jour le slug du webtoon en cas de modification du titre principal
+        if ($this->webtoon?->getTitle() === $this) {
+            $this->webtoon->setTitle($this);
+        }
+
         return $this;
     }
 
