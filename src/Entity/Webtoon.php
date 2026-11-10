@@ -113,7 +113,7 @@ final class Webtoon
     private ?bool $publish = false;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['webtoon:read', 'webtoon:write'])]
+    #[Groups(['webtoon:read'])]
     private ?string $image = 'defaut.jpg';
 
     #[Vich\UploadableField(mapping: 'webtoon_covers', fileNameProperty: 'image')]
