@@ -9,17 +9,19 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Repository\WebtoonRepository;
 use App\Security\WebtoonVoter;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
+use ApiPlatform\Validator\Exception\ValidationException;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 #[ApiResource]
 #[Post(
     uriTemplate: '/webtoons/{id}/cover',
+    security: "is_granted('ROLE_USER')",
     processor: UploadWebtoonCover::class,
     deserialize: false,
     openapi: new \ApiPlatform\OpenApi\Model\Operation(
@@ -46,20 +48,13 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
 )]
 final class UploadWebtoonCover implements ProcessorInterface
 {
-    #[Assert\NotNull(message: 'Le fichier est obligatoire.')]
-    #[Assert\File(
-        maxSize: '1M',
-        mimeTypes: ['image/jpeg'],
-        mimeTypesMessage: 'Veuillez uploader une image JPG valide.'
-    )]
-    private ?UploadedFile $file = null;
-
     public function __construct(
         private RequestStack $requestStack,
         private WebtoonRepository $webtoonRepository,
         private EntityManagerInterface $em,
         private TagAwareCacheInterface $cache,
-        private Security $security
+        private Security $security,
+        private ValidatorInterface $validator
     ) {}
 
     /**
@@ -82,23 +77,25 @@ final class UploadWebtoonCover implements ProcessorInterface
         $request = $this->requestStack->getCurrentRequest();
         $uploadedFile = $request?->files->get('file');
 
-        if ($uploadedFile instanceof UploadedFile) {
-            $webtoon->setImageFile($uploadedFile);
-            $this->em->flush();
-            $this->cache->invalidateTags(['webtoons_list']);
+        // deserialize: false : le fichier ne passe pas par la validation d'API Platform
+        $violations = $this->validator->validate($uploadedFile, [
+            new Assert\NotNull(message: 'Le fichier est obligatoire.'),
+            new Assert\File(
+                maxSize: '1M',
+                mimeTypes: ['image/jpeg'],
+                maxSizeMessage: 'L\'image ne doit pas dépasser 1 Mo.',
+                mimeTypesMessage: 'L\'image doit être au format JPEG.',
+                uploadIniSizeErrorMessage: 'L\'image ne doit pas dépasser 1 Mo.',
+            ),
+        ]);
+        if (0 !== \count($violations)) {
+            throw new ValidationException($violations);
         }
 
+        $webtoon->setImageFile($uploadedFile);
+        $this->em->flush();
+        $this->cache->invalidateTags(['webtoons_list']);
+
         return $webtoon;
-    }
-
-    public function getFile(): ?UploadedFile
-    {
-        return $this->file;
-    }
-
-    public function setFile(?UploadedFile $file): self
-    {
-        $this->file = $file;
-        return $this;
     }
 }

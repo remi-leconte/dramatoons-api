@@ -11,8 +11,6 @@ class WebtoonCoverNamer implements NamerInterface
     public function name(object $object, PropertyMapping $mapping): string
     {
         /** @var Webtoon $object */
-        $extension = $object->getImageFile()?->guessExtension() ?? 'jpg';
-        
-        return sprintf('webtoon_presentation_%s.%s', $object->getSlug(), $extension);
+        return sprintf('webtoon_presentation_%s.jpg', $object->getSlug());
     }
 }
