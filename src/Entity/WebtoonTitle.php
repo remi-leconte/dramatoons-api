@@ -80,6 +80,11 @@ class WebtoonTitle
     {
         $this->title = $title;
 
+        // Le slug n'est calculé que par Webtoon::setTitle(), que PATCH /webtoon_titles n'appelle pas
+        if ($this->webtoon?->getTitle() === $this) {
+            $this->webtoon->setTitle($this);
+        }
+
         return $this;
     }
 
