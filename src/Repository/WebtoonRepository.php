@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Webtoon;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -27,8 +28,7 @@ final class WebtoonRepository extends ServiceEntityRepository
         }
 
         if ($params['mode'] === 'bibliotheque') {
-            $qb->innerJoin('w.readers', 'wu', 'WITH', 'wu.reader = :user')
-                ->setParameter('user', $user);
+            $this->addLibraryCondition($qb, $user);
 
             if (!empty($params['status']) && is_array($params['status'])) {
                 $qb->andWhere('wu.state IN (:includedStatuses)')
@@ -43,14 +43,6 @@ final class WebtoonRepository extends ServiceEntityRepository
                     )
                 )->setParameter('excludedStatuses', $params['exclude_status']);
             }
-
-            $qb->andWhere(
-                $qb->expr()->orX(
-                    'wu.state IS NOT NULL',
-                    'wu.bookmark IS NOT NULL and wu.bookmark != 0',
-                    'wu.rate IS NOT NULL'
-                )
-            );
         } elseif ($params['mode'] === 'catalogue' || $params['mode'] === 'search') {
             $qb->andWhere('w.publish = :publish')
                ->setParameter('publish', true);
@@ -78,16 +70,7 @@ final class WebtoonRepository extends ServiceEntityRepository
                    ->setParameter('publish', false);
             }
         } elseif ($params['mode'] === 'ext') {
-            $qb->innerJoin('w.readers', 'wu', 'WITH', 'wu.reader = :user')
-                ->setParameter('user', $user);
-
-            $qb->andWhere(
-                $qb->expr()->orX(
-                    'wu.state IS NOT NULL',
-                    'wu.bookmark IS NOT NULL and wu.bookmark != 0',
-                    'wu.rate IS NOT NULL'
-                )
-            );
+            $this->addLibraryCondition($qb, $user);
         }
 
         if (!empty($params['title'])) {
@@ -168,5 +151,20 @@ final class WebtoonRepository extends ServiceEntityRepository
         }
 
         return $ordered;
+    }
+
+    private function addLibraryCondition(QueryBuilder $qb, User $user): void
+    {
+        $qb->leftJoin('w.readers', 'wu', 'WITH', 'wu.reader = :user')
+            ->andWhere(
+                $qb->expr()->orX(
+                    'wu.state IS NOT NULL',
+                    'wu.bookmark IS NOT NULL and wu.bookmark != 0',
+                    'wu.rate IS NOT NULL',
+                    'w.creator = :user AND w.publish = :unpublished'
+                )
+            )
+            ->setParameter('user', $user)
+            ->setParameter('unpublished', false);
     }
 }
