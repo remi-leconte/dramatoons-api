@@ -6,10 +6,10 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
+use ApiPlatform\Validator\Exception\ValidationException;
 use App\Repository\WebtoonRepository;
 use App\Security\WebtoonVoter;
 use Doctrine\ORM\EntityManagerInterface;
-use ApiPlatform\Validator\Exception\ValidationException;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -27,7 +27,7 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
     openapi: new \ApiPlatform\OpenApi\Model\Operation(
         tags: ['Webtoon'],
         summary: 'Upload de la couverture d\'un webtoon',
-        description: 'Reçoit un fichier image multipart/form-data, le sauvegarde sur le disque et met à jour le nom en BDD.',
+        description: 'Reçoit une image JPEG de 1 Mo au maximum (multipart/form-data, champ file), l\'enregistre en webtoon_presentation_{slug}.jpg et met à jour le champ image. Réponses : 401 si non connecté, 403 sans droit de modification, 422 si le fichier est absent, n\'est pas un JPEG ou dépasse 1 Mo (413 par le serveur web au-delà d\'environ 1 Mio).',
         requestBody: new \ApiPlatform\OpenApi\Model\RequestBody(
             content: new \ArrayObject([
                 'multipart/form-data' => [
@@ -37,7 +37,7 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
                             'file' => [
                                 'type' => 'string',
                                 'format' => 'binary',
-                                'description' => 'Fichier image à uploader'
+                                'description' => 'Image JPEG, 1 Mo au maximum'
                             ]
                         ]
                     ]

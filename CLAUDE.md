@@ -56,7 +56,7 @@ docker compose exec php php bin/console app:test-data             # dev : suppri
 | `/users` (CRUD) | Liste : admin. Détail : connecté (`login`, `role`, `created` ; le reste au propriétaire et à l'admin). `POST` = inscription. `PATCH` et `DELETE` : admin ou soi-même |
 | `POST /users/verify`, `/users/resend-verification` | Validation de l'email |
 | `POST /users/forgot-password`, `/users/reset-password` | Mot de passe oublié |
-| `/webtoons` (CRUD) | `GET /webtoons/{id}` : `WEBTOON_VIEW`. `POST` : connecté. `PATCH` et `DELETE` : `WEBTOON_EDIT`. `creator` (auteur du `POST`) et `slug` (calculé depuis le titre principal) ne sont pas modifiables par le client ; `title` : un nouveau titre, ou un titre de ce webtoon |
+| `/webtoons` (CRUD) | `GET /webtoons/{id}` : `WEBTOON_VIEW`. `POST` : connecté. `PATCH` et `DELETE` : `WEBTOON_EDIT`. `creator` (auteur du `POST`), `slug` (calculé depuis le titre principal) et `image` (seulement via `/cover`) ne sont pas modifiables par le client ; `title` : un nouveau titre, ou un titre de ce webtoon |
 | `POST /webtoons/{id}/cover` | Connecté (sinon 401), puis `WEBTOON_EDIT`. Multipart `file`, JPEG ≤ 1 Mo (sinon 422, validé dans le processor ; au-delà d'environ 1 Mio, nginx refuse en 413), toujours enregistré dans `public/upload/cover/webtoon_presentation_{slug}.jpg` (VichUploader) |
 | `/webtoon_titles` (CRUD) | Liste : MODO. Détail : `WEBTOON_VIEW`, et `POST`, `PATCH`, `DELETE` : `WEBTOON_EDIT`, sur le webtoon du titre |
 | `/webtoon_users` (sans `PUT`) | Liste : MODO. Détail : le lecteur ou MODO. `PATCH`/`DELETE` : le lecteur seulement. `POST` : `WEBTOON_VIEW` sur le webtoon visé. `reader` et `webtoon` fixés à la création. Un suivi vide (sans note ni état, chapitre vide ou 0) est refusé (422) : le front le supprime |
