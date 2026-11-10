@@ -38,11 +38,16 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
             security: "is_granted('ROLE_USER')",
             denormalizationContext: ['groups' => ['webtoon:write']],
             normalizationContext: ['groups' => ['webtoon:read']],
+            // Un titre existant envoyé par IRI serait détaché de son webtoon par WebtoonProcessor
+            securityPostDenormalize: "null === object.getTitle() or null === object.getTitle().getId() or object === object.getTitle().getWebtoon()",
+            securityPostDenormalizeMessage: "Ce titre appartient à un autre webtoon.",
             processor: WebtoonProcessor::class),
         new Patch(denormalizationContext: ['groups' => ['webtoon:write']],
             normalizationContext: ['groups' => ['webtoon:read']],
             security: "is_granted('WEBTOON_EDIT', object)",
             securityMessage: "Impossible de modifier ce webtoon.",
+            securityPostDenormalize: "null === object.getTitle() or null === object.getTitle().getId() or object === object.getTitle().getWebtoon()",
+            securityPostDenormalizeMessage: "Ce titre appartient à un autre webtoon.",
             processor: WebtoonProcessor::class),
         new Delete(
             normalizationContext: ['groups' => ['webtoon:read']],
@@ -115,7 +120,7 @@ final class Webtoon
     private ?File $imageFile = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    private ?string $comment = null; // pas utilisé pour l'instant
+    private ?string $comment = null; // pas encore utilisé
 
     #[ORM\Column(name: 'lastVerification', type: Types::DATE_MUTABLE, nullable: true)]
     #[Groups(['webtoon:read'])]
