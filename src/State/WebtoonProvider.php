@@ -42,13 +42,13 @@ final class WebtoonProvider implements ProviderInterface
             'title' => $filters['title'] ?? '', // admin / bibliothèque / catalogue
             'status' => $filters['status'] ?? [], // bibliothèque / catalogue
             'exclude_status' => $filters['exclude_status'] ?? [], // bibliothèque / catalogue
-            'statusWebtoon' => ($filters['statusWebtoon'] ?? '' && in_array($filters['statusWebtoon'], ['completed', 'ongoing'], true) ? $filters['statusWebtoon'] : ''), // admin
+            'statusWebtoon' => in_array($filters['statusWebtoon'] ?? null, ['completed', 'ongoing'], true) ? $filters['statusWebtoon'] : '', // tous
             'id' => isset($filters['id']) ? (int) $filters['id'] : null, // admin
             'publish' => isset($filters['publish']) ? filter_var($filters['publish'], FILTER_VALIDATE_BOOLEAN) : true, // admin
             'page' => $page,
             'limit' => $limit, // admin (GET) / bibliothèque / catalogue
             'sortBy' => $filters['sortBy'] ?? 'added',
-            'sortOrder' => $filters['sortOrder'] ?? 'DESC'
+            'sortOrder' => is_string($filters['sortOrder'] ?? null) && 'ASC' === strtoupper($filters['sortOrder']) ? 'ASC' : 'DESC'
         ];
         
         $cacheKey = sprintf('webtoons_u%d_%s', $user->getId(), md5(json_encode($queryParams)));

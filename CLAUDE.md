@@ -70,8 +70,9 @@ docker compose exec php php bin/console app:test-data             # dev : suppri
 - **Filtres** :
   - `title` : titre principal ou secondaire ;
   - `status[]` et `exclude_status[]` : `state` du suivi ;
-  - en mode admin uniquement : `id`, `publish=false`, `statusWebtoon`.
-- **Tri** : `sortBy` = `added` (défaut, date de création), `title`, `rating`, `user_rating`, `id`, `status`, `publish`, `updated`. Ordre par `sortOrder`.
+  - `statusWebtoon` (`completed` ou `ongoing`, sinon ignoré) : statut du webtoon, dans tous les modes (le front ne l'envoie pas) ;
+  - en mode admin uniquement : `id`, `publish=false`.
+- **Tri** : `sortBy` = `added` (défaut, date de création), `title`, `rating`, `user_rating`, `id`, `status`, `publish`, `updated`. Ordre par `sortOrder` : `ASC` ou `DESC` (casse ignorée), `DESC` par défaut et pour toute autre valeur.
 - **Pagination** : `page`, `itemsPerPage` (20 par défaut), `pagination=false`.
 - **Réponse** : chaque webtoon porte `userProgress`, le WebtoonUser de l'utilisateur courant.
 - **Cache Redis à tags** : seuls les ids et le total, pendant 10 jours. Tags `webtoons_list` (toute écriture sur Webtoon ou WebtoonTitle) et `user_{id}` (écriture d'un suivi).
