@@ -66,7 +66,7 @@ docker compose exec php php bin/console app:test-data             # dev : suppri
   - `bibliotheque` : webtoons suivis avec au moins un `state`, un `bookmark` ou un `rate` ;
   - `catalogue` et `search` : webtoons publiés ;
   - `ext` : comme `bibliotheque`, pour l'extension ;
-  - `admin` : tous les webtoons, admin uniquement.
+  - `admin` : tous les webtoons, à partir de MODO (sinon : bibliothèque).
 - **Filtres** :
   - `title` : titre principal ou secondaire ;
   - `status[]` et `exclude_status[]` : `state` du suivi ;
