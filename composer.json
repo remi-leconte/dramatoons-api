@@ -73,7 +73,16 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
+        ],
+        "ci": [
+            "@composer validate --no-check-publish",
+            "@php bin/console doctrine:schema:validate --skip-sync",
+            "@php bin/console cache:warmup --env=dev",
+            "@php vendor/bin/phpstan analyse --no-progress --memory-limit=1G"
         ]
+    },
+    "scripts-descriptions": {
+        "ci": "Vérifications lancées par la CI sur chaque PR (voir .github/workflows/ci.yml)"
     },
     "conflict": {
         "symfony/symfony": "*"
@@ -85,6 +94,9 @@
         }
     },
     "require-dev": {
+        "phpstan/phpstan": "^2.3",
+        "phpstan/phpstan-doctrine": "^2.1",
+        "phpstan/phpstan-symfony": "^2.1",
         "symfony/maker-bundle": "^1.67",
         "symfony/stopwatch": "8.0.*",
         "symfony/web-profiler-bundle": "8.0.*"
