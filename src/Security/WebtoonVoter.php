@@ -12,7 +12,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 /**
  * Droits sur un webtoon, ses titres (webtoonTitle) et sa couverture.
  *
- * @extends Voter<string, Webtoon>
+ * @extends Voter<string, Webtoon|null>
  */
 final class WebtoonVoter extends Voter
 {

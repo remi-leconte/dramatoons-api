@@ -19,7 +19,7 @@ final class WebtoonProvider implements ProviderInterface
         private TagAwareCacheInterface $cache
     ) {}
 
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array
     {
         /** @var User|null $user */
         $user = $this->security->getUser();
