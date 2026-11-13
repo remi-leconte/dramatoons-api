@@ -6,6 +6,7 @@ use ApiPlatform\OpenApi\Factory\OpenApiFactoryInterface;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\PathItem;
 use ApiPlatform\OpenApi\Model\RequestBody;
+use ApiPlatform\OpenApi\Model\Response;
 use ApiPlatform\OpenApi\OpenApi;
 use ArrayObject;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
@@ -65,7 +66,7 @@ final class OpenApiFactory implements OpenApiFactoryInterface
                     required: true
                 ),
                 responses: [
-                    '200' => ['description' => 'Token rafraîchi avec succès'],
+                    '200' => new Response('Token rafraîchi avec succès'),
                 ],
             ),
         );
