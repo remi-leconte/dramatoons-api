@@ -15,6 +15,7 @@ docker compose exec php php bin/console doctrine:migrations:migrate
 docker compose exec php php bin/console app:create-admin          # admin initial, via INITIAL_ADMIN_*
 docker compose exec php php bin/console app:create-deleted-user   # compte « Utilisateur supprimé », via DELETED_USER_PASSWORD
 docker compose exec php php bin/console app:test-data             # dev : supprime et recrée les données de test
+docker compose exec php composer ci                               # vérifications de la CI (voir « CI »)
 ```
 
 - Les fichiers `compose.prod.yml` et `compose.staging.yml` se superposent à `compose.yml`.
@@ -76,6 +77,19 @@ docker compose exec php php bin/console app:test-data             # dev : suppri
 - **Pagination** : `page`, `itemsPerPage` (20 par défaut), `pagination=false`.
 - **Réponse** : chaque webtoon porte `userProgress`, le WebtoonUser de l'utilisateur courant.
 - **Cache Redis à tags** : seuls les ids et le total, pendant 10 jours. Tags `webtoons_list` (toute écriture sur Webtoon ou WebtoonTitle) et `user_{id}` (écriture d'un suivi).
+
+## CI
+`.github/workflows/ci.yml` (GitHub Actions) tourne sur chaque PR vers `main` ou `release/*`, sur un runner Ubuntu de GitHub. Deux checks, obligatoires pour fusionner :
+- **Vérifications** : `composer install` (dépendances de dev comprises), puis `composer ci`, qui enchaîne :
+  1. `composer validate` : `composer.json` est valide (les avertissements ne bloquent pas) ;
+  2. `doctrine:schema:validate --skip-sync` : mapping des entités cohérent, sans comparaison avec une base ;
+  3. `cache:warmup --env=dev` : compile le conteneur de dev que lit PHPStan (`var/cache/dev/App_KernelDevDebugContainer.xml`) ;
+  4. PHPStan, niveau 5, sur `src/` (`phpstan.dist.neon`, extensions Symfony et Doctrine).
+- **Image prod** : construit l'étape `prod` de `docker/php/Dockerfile`, sans la publier.
+
+La CI n'a ni `.env` ni base de données. Symfony y lit `.env.dist`, complété par `APP_ENV=dev` et un `DATABASE_URL` factice définis dans le workflow. PHPStan et ses extensions sont en `require-dev`, donc absents de l'image prod (`composer install --no-dev`).
+
+`lint:container` n'est pas lancé : il échoue sur un service de formulaire déclaré par VichUploader, qui exige `symfony/form`, absent car l'API n'a pas de formulaire.
 
 ## Git
 Workflow (branches, PR, tickets, releases) : skill `workflow-github`. `.env.local` et `config/jwt/*.pem` ne sont pas versionnés.
