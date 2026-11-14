@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: ./docker/php/Dockerfile
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      REDIS_URL: redis://redis:6379
     networks:
       - api_internal_network
 
@@ -28,10 +28,10 @@ services:
     image: mariadb:12.3.2-noble
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
-      MARIADB_DATABASE: ${MARIADB_DATABASE}
-      MARIADB_USER: ${MARIADB_USER}
-      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-!ChangeMe!}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-dramatoons}
+      MARIADB_USER: ${MARIADB_USER:-dramatoons}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-!ChangeMe!}
       MARIADB_MYSQL_LOCALHOST_USER: "1"
     command:
       - --character-set-server=utf8mb4

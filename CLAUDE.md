@@ -18,10 +18,24 @@ docker compose exec php php bin/console app:test-data             # dev : suppri
 docker compose exec php composer ci                               # vérifications de la CI (voir « CI »)
 ```
 
-- Les fichiers `compose.prod.yml` et `compose.staging.yml` se superposent à `compose.yml`.
+- `compose.override.yaml` (dev) se superpose automatiquement à `compose.yaml` ; en recette et en prod, c'est `compose.prod.yaml` (voir « Configuration »).
 - En prod et staging, l'entrypoint génère les clés JWT et applique les migrations. En dev, les migrations se lancent à la main.
 - Il n'y a pas de tests automatisés.
 - Données de test (`src/Command/TestDataCommand.php`, dev uniquement) : comptes `test-…` (admin, modo, créateur, lecteur, inconnu, désactivé, non vérifié ; mot de passe `test-password`) et webtoons `[TEST] …` couvrant chaque cas de publication et de suivi. Utilisées par l'agent `testeur`.
+
+## Configuration
+Conventions de Symfony et de Docker Compose :
+- **`.env`**, versionné : valeurs par défaut du dev, sans aucun secret. Il est copié dans l'image.
+- **`.env.local`**, non versionné et exclu de l'image (`.dockerignore`) : valeurs propres à une machine. En dev, Symfony le lit après `.env`.
+- **Dans les conteneurs**, les vraies variables d'environnement l'emportent sur ces fichiers. `compose.yaml` passe `REDIS_URL`, et `compose.prod.yaml` passe `DATABASE_URL`, construite à partir des variables `MARIADB_*` (MariaDB et PHP partagent ainsi les mêmes valeurs).
+- **En dev**, Compose lit seulement `.env`, jamais `.env.local` : MariaDB prend les valeurs par défaut de `compose.yaml` (`dramatoons`, `!ChangeMe!`), et le `DATABASE_URL` de `.env` leur correspond. MariaDB ne lit ces variables qu'à la création de sa base (volume vide) : avec une base existante, `.env.local` doit donc définir le `DATABASE_URL` de ses identifiants réels.
+- **En recette et en prod**, une seule configuration, `compose.prod.yaml`, avec des valeurs différentes. Chaque serveur a un `.env.local` passé à Compose par `docker compose --env-file .env.local …`. Il contient :
+  - `COMPOSE_FILE=compose.yaml:compose.prod.yaml` ;
+  - `DEPLOY_ENV` (`staging` ou `prod`) : nom du projet Compose et des volumes de données ;
+  - `HTTP_PORT` : port local de nginx ;
+  - les variables `MARIADB_*` (`MARIADB_USER` et `MARIADB_PASSWORD` sans `@ : / ? #`, car elles entrent telles quelles dans `DATABASE_URL`), `APP_SECRET`, `DEFAULT_URI`, `FRONTEND_URL`, `CORS_ALLOW_ORIGIN`, `MAILER_DSN`, `JWT_PASSPHRASE` : obligatoires, Compose refuse de démarrer s'il en manque une ;
+  - `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD`, `DELETED_USER_PASSWORD` : seulement pour les commandes `app:create-admin` et `app:create-deleted-user`.
+- Une nouvelle variable d'environnement s'ajoute dans `.env` (valeur de dev) et dans l'`environment` de `compose.prod.yaml`.
 
 ## Organisation
 - `src/Entity/` : entités ; leurs `#[ApiResource]` définissent opérations, `security` et groupes.
@@ -87,7 +101,7 @@ docker compose exec php composer ci                               # vérificatio
   4. PHPStan, niveau 5, sur `src/` (`phpstan.dist.neon`, extensions Symfony et Doctrine).
 - **Image prod** : construit l'étape `prod` de `docker/php/Dockerfile`, sans la publier.
 
-La CI n'a ni `.env` ni base de données. Symfony y lit `.env.dist`, complété par `APP_ENV=dev` et un `DATABASE_URL` factice définis dans le workflow. PHPStan et ses extensions sont en `require-dev`, donc absents de l'image prod (`composer install --no-dev`).
+La CI n'a pas de base de données : Symfony y lit le `.env` versionné, dont le `DATABASE_URL` n'est jamais contacté (Doctrine exige seulement une URL valide avec la version du serveur). PHPStan et ses extensions sont en `require-dev`, donc absents de l'image prod (`composer install --no-dev`).
 
 `lint:container` n'est pas lancé : il échoue sur un service de formulaire déclaré par VichUploader, qui exige `symfony/form`, absent car l'API n'a pas de formulaire.
 
