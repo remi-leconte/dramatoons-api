@@ -1,23 +1,18 @@
 FROM php:8.4-fpm-alpine3.24 AS base
 
-RUN sed -i 's|/sbin/nologin|/bin/sh|g' /etc/passwd
-
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk add --no-cache \
+RUN apk add --no-cache \
     icu-dev \
     libzip-dev \
     libpng-dev \
     su-exec
 
-RUN --mount=type=cache,target=/tmp/pip-cache \
-    docker-php-ext-install \
+RUN docker-php-ext-install \
     intl \
     pdo_mysql \
     zip \
     opcache
 
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk add --no-cache --virtual .build-deps $PHPIZE_DEPS linux-headers \
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS linux-headers \
     && pecl install apcu redis \
     && docker-php-ext-enable apcu redis \
     && apk del .build-deps

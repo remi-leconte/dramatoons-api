@@ -17,12 +17,6 @@ jobs:
   verifications:
     name: Vérifications
     runs-on: ubuntu-24.04
-    env:
-      # PHPStan lit le conteneur compilé dans var/cache/dev
-      APP_ENV: dev
-      APP_DEBUG: '1'
-      # Jamais contactée : Doctrine exige seulement une URL valide avec la version du serveur
-      DATABASE_URL: 'mysql://ci:ci@127.0.0.1:3306/ci?serverVersion=12.3.2-MariaDB&charset=utf8mb4'
     steps:
       - uses: actions/checkout@v7
 

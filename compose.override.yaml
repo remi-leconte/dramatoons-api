@@ -3,8 +3,6 @@ name: dramatoons_api_dev
 services:
   php:
     build:
-      context: .
-      dockerfile: ./docker/php/Dockerfile
       target: dev
     depends_on:
       mariadb:
