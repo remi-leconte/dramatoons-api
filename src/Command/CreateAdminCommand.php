@@ -28,8 +28,8 @@ class CreateAdminCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $email = $_ENV['INITIAL_ADMIN_EMAIL'] ?? null;
-        $password = $_ENV['INITIAL_ADMIN_PASSWORD'] ?? null;
+        $email = $_SERVER['INITIAL_ADMIN_EMAIL'] ?? null;
+        $password = $_SERVER['INITIAL_ADMIN_PASSWORD'] ?? null;
 
         if (!$email || !$password) {
             $io->error('Variables INITIAL_ADMIN_EMAIL ou INITIAL_ADMIN_PASSWORD manquantes.');

@@ -31,7 +31,7 @@ class CreateDeletedUserCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $password = $_ENV['DELETED_USER_PASSWORD'] ?? $_SERVER['DELETED_USER_PASSWORD'] ?? null;
+        $password = $_SERVER['DELETED_USER_PASSWORD'] ?? null;
 
         if (!$password) {
             $io->error('Variable DELETED_USER_PASSWORD manquante.');
