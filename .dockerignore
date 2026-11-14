@@ -1,0 +1,12 @@
+.git
+.github
+.vscode
+.devcontainer
+.env.local
+.env.local.php
+.env.*.local
+config/jwt/*.pem
+public/upload
+var
+vendor
+compose*.yaml
