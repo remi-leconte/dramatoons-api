@@ -7,7 +7,7 @@ Auth : JWT Lexik (1 h) et refresh token Gesdinet (30 jours, à usage unique), sa
 Toutes depuis `api/`, dans le conteneur `php` :
 
 ```sh
-docker compose up -d                                              # dev (charge compose.override.yml)
+docker compose up -d                                              # dev (charge compose.override.yaml)
 docker compose exec php php bin/console <commande>
 docker compose exec php composer <commande>
 docker compose exec php php bin/console doctrine:migrations:diff  # après modification d'une entité
@@ -33,8 +33,10 @@ Conventions de Symfony et de Docker Compose :
   - `COMPOSE_FILE=compose.yaml:compose.prod.yaml` ;
   - `DEPLOY_ENV` (`staging` ou `prod`) : nom du projet Compose et des volumes de données ;
   - `HTTP_PORT` : port local de nginx ;
-  - les variables `MARIADB_*` (`MARIADB_USER` et `MARIADB_PASSWORD` sans `@ : / ? #`, car elles entrent telles quelles dans `DATABASE_URL`), `APP_SECRET`, `DEFAULT_URI`, `FRONTEND_URL`, `CORS_ALLOW_ORIGIN`, `MAILER_DSN`, `JWT_PASSPHRASE` : obligatoires, Compose refuse de démarrer s'il en manque une ;
+  - les variables `MARIADB_*` (`MARIADB_USER` et `MARIADB_PASSWORD` sans `@ : / ? # %`, car elles entrent telles quelles dans `DATABASE_URL`), `APP_SECRET`, `DEFAULT_URI`, `FRONTEND_URL`, `CORS_ALLOW_ORIGIN`, `MAILER_DSN`, `JWT_PASSPHRASE` : obligatoires, Compose refuse de démarrer s'il en manque une ;
   - `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD`, `DELETED_USER_PASSWORD` : seulement pour les commandes `app:create-admin` et `app:create-deleted-user`.
+- Compose remplace les `$` des valeurs de `.env.local` : une valeur qui en contient se met entre apostrophes (`'…'`).
+- Sur un serveur, une commande `docker compose` lancée sans `--env-file .env.local` lit le `.env` de dev et vise la pile de dev.
 - Une nouvelle variable d'environnement s'ajoute dans `.env` (valeur de dev) et dans l'`environment` de `compose.prod.yaml`.
 
 ## Organisation
