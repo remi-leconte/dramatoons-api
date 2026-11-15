@@ -13,6 +13,18 @@
             "src/ApiResource/.gitignore"
         ]
     },
+    "dama/doctrine-test-bundle": {
+        "version": "8.8",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "8.3",
+            "ref": "dfc51177476fb39d014ed89944cde53dc3326d23"
+        },
+        "files": [
+            "config/packages/dama_doctrine_test_bundle.yaml"
+        ]
+    },
     "doctrine/deprecations": {
         "version": "1.1",
         "recipe": {
@@ -97,6 +109,21 @@
         },
         "files": [
             "phpstan.dist.neon"
+        ]
+    },
+    "phpunit/phpunit": {
+        "version": "13.4",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "11.1",
+            "ref": "ca0bc067abfb40a8de1b2561b96cbfc2b833c314"
+        },
+        "files": [
+            ".env.test",
+            "phpunit.dist.xml",
+            "tests/bootstrap.php",
+            "bin/phpunit"
         ]
     },
     "symfony/console": {
@@ -254,6 +281,19 @@
         },
         "files": [
             "config/packages/vich_uploader.yaml"
+        ]
+    },
+    "zenstruck/foundry": {
+        "version": "2.16",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "2.15",
+            "ref": "ce0c9d62f1d5192dcd958c2f2f21fd8d9c23dcaa"
+        },
+        "files": [
+            "config/packages/zenstruck_foundry.yaml",
+            "src/Story/AppStory.php"
         ]
     }
 }
