@@ -19,7 +19,6 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
-use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Attribute as Vich;
@@ -95,10 +94,6 @@ final class Webtoon
     #[Groups(['webtoon:read'])]
     private ?User $creator = null;
 
-    #[ORM\Column(length: 255)]
-    #[Groups(['webtoon:read'])]
-    private ?string $slug = null;
-
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['webtoon:read', 'webtoon:write'])]
     private ?string $status = null;
@@ -167,9 +162,6 @@ final class Webtoon
     public function setTitle(?WebtoonTitle $title): static
     {
         $this->title = $title;
-        if ($title !== null && $title->getTitle() !== null) {
-            $this->slug = (new AsciiSlugger())->slug($title->getTitle())->lower()->toString();
-        }
 
         return $this;
     }
@@ -219,11 +211,6 @@ final class Webtoon
         $this->creator = $creator;
 
         return $this;
-    }
-
-    public function getSlug(): ?string
-    {
-        return $this->slug;
     }
 
     public function getStatus(): ?string
