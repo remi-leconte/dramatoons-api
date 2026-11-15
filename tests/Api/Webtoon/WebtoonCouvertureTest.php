@@ -10,6 +10,7 @@ use App\Tests\Factory\WebtoonFactory;
 use App\Tests\Factory\WebtoonUserFactory;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 
 #[TestDox('Couverture d’un webtoon (POST /webtoons/{id}/cover) : JPEG de 1 Mo au maximum')]
 final class WebtoonCouvertureTest extends ApiTestCase
@@ -42,9 +43,9 @@ final class WebtoonCouvertureTest extends ApiTestCase
         return new UploadedFile($chemin, $nom, null, null, true);
     }
 
-    private function envoyer(?User $utilisateur, Webtoon $webtoon, ?UploadedFile $fichier): void
+    private function envoyer(?User $utilisateur, Webtoon $webtoon, ?UploadedFile $fichier): ResponseInterface
     {
-        $this->client($utilisateur)->request('POST', '/webtoons/'.$webtoon->getId().'/cover', [
+        return $this->client($utilisateur)->request('POST', '/webtoons/'.$webtoon->getId().'/cover', [
             'headers' => ['Content-Type' => 'multipart/form-data'],
             'extra' => ['files' => null === $fichier ? [] : ['file' => $fichier]],
         ]);
@@ -63,36 +64,56 @@ final class WebtoonCouvertureTest extends ApiTestCase
         $this->assertResponseStatusCodeSame(401);
     }
 
-    #[TestDox('Le créateur d’un webtoon dépublié que personne ne suit envoie un JPEG : enregistré sous webtoon_presentation_{slug}.jpg')]
+    private function chemin(string $image): string
+    {
+        return static::getContainer()->getParameter('kernel.project_dir').'/var/test/upload/cover/'.$image;
+    }
+
+    #[TestDox('Le créateur d’un webtoon dépublié que personne ne suit envoie un JPEG : enregistré sous un nom unique')]
     public function testCreateurEnvoieJpeg(): void
     {
         $createur = UserFactory::createOne();
         $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
 
-        $this->envoyer($createur, $webtoon, $this->jpeg());
+        $image = $this->envoyer($createur, $webtoon, $this->jpeg())->toArray()['image'];
 
         $this->assertResponseStatusCodeSame(201);
-        $this->assertJsonContains(['image' => 'webtoon_presentation_'.$webtoon->getSlug().'.jpg']);
+        $this->assertMatchesRegularExpression('/^[0-9a-f]+\.jpg$/', $image);
+        $this->assertFileExists($this->chemin($image));
     }
 
-    #[TestDox('Une couverture envoyée juste après la création du webtoon est enregistrée, et un nouvel envoi aussitôt après la remplace')]
+    #[TestDox('Une couverture envoyée juste après la création du webtoon est enregistrée, et un nouvel envoi aussitôt après la remplace sous un autre nom')]
     public function testCouvertureJusteApresCreation(): void
     {
         $createur = UserFactory::createOne();
         $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
-        $nom = 'webtoon_presentation_'.$webtoon->getSlug().'.jpg';
-        $chemin = static::getContainer()->getParameter('kernel.project_dir').'/var/test/upload/cover/'.$nom;
 
-        $this->envoyer($createur, $webtoon, $this->jpeg(1000));
+        $premiere = $this->envoyer($createur, $webtoon, $this->jpeg(1000))->toArray()['image'];
         $this->assertResponseStatusCodeSame(201);
-        $this->assertJsonContains(['image' => $nom]);
-        $this->assertFileExists($chemin);
-        $this->assertSame(1000, filesize($chemin));
+        $this->assertSame(1000, filesize($this->chemin($premiere)));
 
-        $this->envoyer($createur, $webtoon, $this->jpeg(2000));
+        $seconde = $this->envoyer($createur, $webtoon, $this->jpeg(2000))->toArray()['image'];
         $this->assertResponseStatusCodeSame(201);
-        clearstatcache();
-        $this->assertSame(2000, filesize($chemin));
+        $this->assertNotSame($premiere, $seconde);
+        $this->assertSame(2000, filesize($this->chemin($seconde)));
+        $this->assertFileDoesNotExist($this->chemin($premiere));
+    }
+
+    #[TestDox('Deux webtoons de même titre, ou de titre non latin, ont chacun leur couverture')]
+    public function testCouverturesDeWebtoonsDeMemeTitre(): void
+    {
+        $createur = UserFactory::createOne();
+        $images = [];
+        foreach (['Solo Leveling', 'Solo Leveling', '나 혼자만 레벨업', '進撃の巨人'] as $i => $titre) {
+            $id = $this->post($createur, '/webtoons', ['title' => ['title' => $titre], 'status' => 'ongoing'])->toArray()['id'];
+            $images[] = $this->envoyer($createur, WebtoonFactory::repository()->find($id), $this->jpeg(1000 + $i))->toArray()['image'];
+            $this->assertResponseStatusCodeSame(201);
+        }
+
+        $this->assertCount(4, array_unique($images));
+        foreach ($images as $i => $image) {
+            $this->assertSame(1000 + $i, filesize($this->chemin($image)));
+        }
     }
 
     #[TestDox('Le créateur d’un webtoon publié ne peut pas changer sa couverture : 403')]

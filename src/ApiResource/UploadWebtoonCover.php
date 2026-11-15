@@ -28,7 +28,7 @@ use Vich\UploaderBundle\Handler\UploadHandler;
     openapi: new \ApiPlatform\OpenApi\Model\Operation(
         tags: ['Webtoon'],
         summary: 'Upload de la couverture d\'un webtoon',
-        description: 'Reçoit une image JPEG de 1 Mo au maximum (multipart/form-data, champ file), l\'enregistre en webtoon_presentation_{slug}.jpg et met à jour le champ image. Réponses : 401 si non connecté, 403 sans droit de modification, 422 si le fichier est absent, n\'est pas un JPEG ou dépasse 1 Mo (413 par le serveur web au-delà d\'environ 1 Mio).',
+        description: 'Reçoit une image JPEG de 1 Mo au maximum (multipart/form-data, champ file), l\'enregistre sous un nouveau nom unique (l\'ancienne image est supprimée) et met à jour le champ image. Réponses : 401 si non connecté, 403 sans droit de modification, 422 si le fichier est absent, n\'est pas un JPEG ou dépasse 1 Mo (413 par le serveur web au-delà d\'environ 1 Mio).',
         requestBody: new \ApiPlatform\OpenApi\Model\RequestBody(
             content: new \ArrayObject([
                 'multipart/form-data' => [

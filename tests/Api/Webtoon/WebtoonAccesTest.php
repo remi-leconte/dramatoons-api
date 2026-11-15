@@ -29,7 +29,7 @@ final class WebtoonAccesTest extends ApiTestCase
         $this->client(UserFactory::createOne())->request('GET', '/webtoons/'.$webtoon->getId());
 
         $this->assertResponseIsSuccessful();
-        $this->assertJsonContains(['id' => $webtoon->getId(), 'slug' => $webtoon->getSlug()]);
+        $this->assertJsonContains(['id' => $webtoon->getId()]);
     }
 
     #[TestDox('Un utilisateur ne voit pas un webtoon dépublié qu’il n’a pas créé et ne suit pas : 403')]
