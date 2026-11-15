@@ -94,9 +94,9 @@ final class UploadWebtoonCover implements ProcessorInterface
             throw new ValidationException($violations);
         }
 
-        // Sans cet appel, VichUploader n'enregistre le fichier que si Doctrine voit `updated` changer.
-        // Doctrine compare les dates à la seconde : un envoi juste après une modification serait ignoré.
         $webtoon->setImageFile($uploadedFile);
+        // Sans ces appels à UploadHandler, VichUploader n'enregistre le fichier que si Doctrine voit `updated` changer.
+        // Doctrine compare les dates à la seconde : un envoi juste après une modification serait ignoré.
         $this->uploadHandler->clean($webtoon, 'imageFile');
         $this->uploadHandler->upload($webtoon, 'imageFile');
         $this->em->flush();
