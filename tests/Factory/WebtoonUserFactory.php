@@ -23,12 +23,4 @@ final class WebtoonUserFactory extends PersistentObjectFactory
             'state' => 'reading',
         ];
     }
-
-    protected function initialize(): static
-    {
-        // Les droits (WebtoonVoter) lisent la collection readers du webtoon déjà chargé
-        return $this->afterInstantiate(function (WebtoonUser $suivi): void {
-            $suivi->getWebtoon()?->addReader($suivi);
-        });
-    }
 }
