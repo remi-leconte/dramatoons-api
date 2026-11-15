@@ -72,4 +72,20 @@ final class WebtoonAccesTest extends ApiTestCase
 
         $this->assertResponseIsSuccessful();
     }
+
+    #[TestDox('Le détail d’un webtoon montre ses statistiques mais aucun suivi d’un autre utilisateur')]
+    public function testDetailSansSuiviDesAutres(): void
+    {
+        $webtoon = WebtoonFactory::new()->publie()->create();
+        WebtoonUserFactory::createOne(['webtoon' => $webtoon, 'rate' => 8.0]);
+
+        $reponse = $this->client(UserFactory::createOne())->request('GET', '/webtoons/'.$webtoon->getId());
+
+        $this->assertResponseIsSuccessful();
+        $donnees = $reponse->toArray();
+        $this->assertSame(8, (int) $donnees['averageRating']);
+        $this->assertSame(1, $donnees['readersCount']);
+        $this->assertArrayNotHasKey('readers', $donnees);
+        $this->assertNull($donnees['userProgress'] ?? null);
+    }
 }
