@@ -73,7 +73,7 @@ final class WebtoonTitreTest extends ApiTestCase
         $createur = UserFactory::createOne();
         $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
 
-        foreach (['', '   '] as $titre) {
+        foreach (['', '   ', "\u{00A0}", "\u{3000}"] as $titre) {
             $this->post($createur, '/webtoon_titles', ['title' => $titre, 'webtoon' => '/webtoons/'.$webtoon->getId()]);
             $this->assertResponseStatusCodeSame(422);
         }

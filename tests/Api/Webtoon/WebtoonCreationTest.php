@@ -76,7 +76,7 @@ final class WebtoonCreationTest extends ApiTestCase
     {
         $createur = UserFactory::createOne();
 
-        foreach (['', '   '] as $vide) {
+        foreach (['', '   ', "\u{00A0}", "\u{3000}"] as $vide) {
             $this->post($createur, '/webtoons', ['title' => ['title' => $vide], 'status' => 'ongoing']);
             $this->assertResponseStatusCodeSame(422);
             $this->assertJsonContains(['violations' => [['propertyPath' => 'title.title']]]);
