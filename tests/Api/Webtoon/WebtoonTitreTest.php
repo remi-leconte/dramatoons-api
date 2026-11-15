@@ -96,7 +96,7 @@ final class WebtoonTitreTest extends ApiTestCase
     public function testCreateurWebtoonPublieModifieTitre(): void
     {
         $createur = UserFactory::createOne();
-        $titre = WebtoonTitleFactory::createOne(['webtoon' => WebtoonFactory::new(['creator' => $createur, 'publish' => true])]);
+        $titre = WebtoonTitleFactory::createOne(['webtoon' => WebtoonFactory::new()->publie()->with(['creator' => $createur])]);
 
         $this->patch($createur, '/webtoon_titles/'.$titre->getId(), ['title' => 'Titre corrigé']);
         $this->assertResponseStatusCodeSame(403);

@@ -7,6 +7,7 @@ use App\Entity\Webtoon;
 use App\Tests\Api\ApiTestCase;
 use App\Tests\Factory\UserFactory;
 use App\Tests\Factory\WebtoonFactory;
+use App\Tests\Factory\WebtoonTitleFactory;
 use App\Tests\Factory\WebtoonUserFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -142,12 +143,15 @@ final class WebtoonModificationTest extends ApiTestCase
     public function testSuppressionSupprimeTitresEtSuivis(): void
     {
         $webtoon = WebtoonFactory::createOne();
+        WebtoonTitleFactory::createOne(['webtoon' => $webtoon]);
         WebtoonUserFactory::createOne(['webtoon' => $webtoon]);
         $id = $webtoon->getId();
+        $this->assertSame(2, WebtoonTitleFactory::repository()->count(['webtoon' => $id]));
 
         $this->client(UserFactory::new()->moderateur()->create())->request('DELETE', '/webtoons/'.$id);
 
         $this->assertResponseStatusCodeSame(204);
+        $this->assertSame(0, WebtoonTitleFactory::repository()->count(['webtoon' => $id]));
         $this->assertSame(0, WebtoonUserFactory::repository()->count(['webtoon' => $id]));
         $this->assertNull(WebtoonFactory::repository()->find($id));
     }

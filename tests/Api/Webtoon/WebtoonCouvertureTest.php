@@ -17,10 +17,27 @@ final class WebtoonCouvertureTest extends ApiTestCase
     /** En-tête JPEG (JFIF) : suffit à faire reconnaître le fichier comme image/jpeg */
     private const ENTETE_JPEG = "\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00";
 
+    /** @var list<string> */
+    private array $fichiersTemporaires = [];
+
+    protected function tearDown(): void
+    {
+        // Un fichier refusé n'est pas déplacé par VichUploader : il resterait dans le dossier temporaire
+        foreach ($this->fichiersTemporaires as $chemin) {
+            if (is_file($chemin)) {
+                unlink($chemin);
+            }
+        }
+        $this->fichiersTemporaires = [];
+
+        parent::tearDown();
+    }
+
     private function fichier(string $contenu, string $nom): UploadedFile
     {
         $chemin = tempnam(sys_get_temp_dir(), 'couverture');
         file_put_contents($chemin, $contenu);
+        $this->fichiersTemporaires[] = $chemin;
 
         return new UploadedFile($chemin, $nom, null, null, true);
     }

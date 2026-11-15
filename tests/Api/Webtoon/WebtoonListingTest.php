@@ -5,6 +5,7 @@ namespace App\Tests\Api\Webtoon;
 use App\Tests\Api\ApiTestCase;
 use App\Tests\Factory\UserFactory;
 use App\Tests\Factory\WebtoonFactory;
+use App\Tests\Factory\WebtoonTitleFactory;
 use App\Tests\Factory\WebtoonUserFactory;
 use PHPUnit\Framework\Attributes\TestDox;
 
@@ -128,9 +129,8 @@ final class WebtoonListingTest extends ApiTestCase
     {
         $lecteur = UserFactory::createOne();
         $publie = WebtoonFactory::new()->publie()->create();
-        $this->post(UserFactory::new()->moderateur()->create(), '/webtoon_titles', ['title' => 'Nom alternatif introuvable', 'webtoon' => '/webtoons/'.$publie->getId()]);
-        $depublie = WebtoonFactory::createOne(['creator' => $lecteur]);
-        $this->post($lecteur, '/webtoon_titles', ['title' => 'Nom alternatif introuvable aussi', 'webtoon' => '/webtoons/'.$depublie->getId()]);
+        WebtoonTitleFactory::createOne(['title' => 'Nom alternatif introuvable', 'webtoon' => $publie]);
+        WebtoonTitleFactory::createOne(['title' => 'Nom alternatif introuvable aussi', 'webtoon' => WebtoonFactory::createOne(['creator' => $lecteur])]);
 
         $this->assertSame([$publie->getId()], $this->listing($lecteur, 'search', ['title' => 'alternatif introuvable']));
     }
@@ -188,6 +188,19 @@ final class WebtoonListingTest extends ApiTestCase
         $this->patch(UserFactory::new()->moderateur()->create(), '/webtoons/'.$webtoon->getId(), ['publish' => true]);
 
         $this->assertSame([$webtoon->getId()], $this->listing($lecteur, 'catalogue'));
+    }
+
+    #[TestDox('Cache : un titre secondaire ajouté par un modérateur est aussitôt trouvé par la recherche')]
+    public function testCacheInvalideALAjoutDUnTitre(): void
+    {
+        $lecteur = UserFactory::createOne();
+        $webtoon = WebtoonFactory::new()->publie()->create();
+        $this->assertSame([], $this->listing($lecteur, 'search', ['title' => 'Nom alternatif tardif']));
+
+        $this->post(UserFactory::new()->moderateur()->create(), '/webtoon_titles', ['title' => 'Nom alternatif tardif', 'webtoon' => '/webtoons/'.$webtoon->getId()]);
+
+        $this->assertResponseStatusCodeSame(201);
+        $this->assertSame([$webtoon->getId()], $this->listing($lecteur, 'search', ['title' => 'Nom alternatif tardif']));
     }
 
     #[TestDox('Cache : un webtoon suivi apparaît aussitôt dans la bibliothèque')]
