@@ -71,23 +71,36 @@ final class WebtoonCreationTest extends ApiTestCase
         $this->assertJsonContains(['creator' => ['id' => $utilisateur->getId()]]);
     }
 
-    #[TestDox('Le titre principal est obligatoire : 422')]
+    #[TestDox('Le titre principal ne peut pas être vide ni fait uniquement d’espaces, ni à la création ni à la modification : 422')]
     public function testTitrePrincipalObligatoire(): void
     {
-        $this->markTestIncomplete('Écart connu : un titre principal vide est accepté (ticket api#85).');
+        $createur = UserFactory::createOne();
 
-        $this->post(UserFactory::createOne(), '/webtoons', ['title' => ['title' => ''], 'status' => 'ongoing']);
+        foreach (['', '   ', "\u{00A0}", "\u{3000}"] as $vide) {
+            $this->post($createur, '/webtoons', ['title' => ['title' => $vide], 'status' => 'ongoing']);
+            $this->assertResponseStatusCodeSame(422);
+            $this->assertJsonContains(['violations' => [['propertyPath' => 'title.title']]]);
+        }
 
+        $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
+        $titre = $webtoon->getTitle()->getTitle();
+        $this->patch($createur, '/webtoons/'.$webtoon->getId(), ['title' => ['title' => '']]);
         $this->assertResponseStatusCodeSame(422);
+        $this->client($createur)->request('GET', '/webtoons/'.$webtoon->getId());
+        $this->assertJsonContains(['title' => ['title' => $titre]]);
     }
 
-    #[TestDox('Un webtoon sans titre est refusé : 422')]
+    #[TestDox('Un webtoon sans titre est refusé, à la création comme à la modification : 422')]
     public function testSansTitre(): void
     {
-        $this->markTestIncomplete('Écart connu : un webtoon sans titre provoque une erreur 500 (ticket api#85).');
+        $createur = UserFactory::createOne();
 
-        $this->post(UserFactory::createOne(), '/webtoons', ['status' => 'ongoing']);
+        $this->post($createur, '/webtoons', ['status' => 'ongoing']);
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertJsonContains(['violations' => [['propertyPath' => 'title']]]);
 
+        $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
+        $this->patch($createur, '/webtoons/'.$webtoon->getId(), ['title' => null]);
         $this->assertResponseStatusCodeSame(422);
     }
 

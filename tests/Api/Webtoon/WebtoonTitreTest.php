@@ -67,15 +67,16 @@ final class WebtoonTitreTest extends ApiTestCase
         $this->assertResponseStatusCodeSame(201);
     }
 
-    #[TestDox('Un titre vide est refusé : 422')]
+    #[TestDox('Un titre vide ou fait uniquement d’espaces est refusé : 422')]
     public function testTitreVide(): void
     {
         $createur = UserFactory::createOne();
         $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
 
-        $this->post($createur, '/webtoon_titles', ['title' => '', 'webtoon' => '/webtoons/'.$webtoon->getId()]);
-
-        $this->assertResponseStatusCodeSame(422);
+        foreach (['', '   ', "\u{00A0}", "\u{3000}"] as $titre) {
+            $this->post($createur, '/webtoon_titles', ['title' => $titre, 'webtoon' => '/webtoons/'.$webtoon->getId()]);
+            $this->assertResponseStatusCodeSame(422);
+        }
     }
 
     #[TestDox('Le créateur modifie puis supprime un titre de son webtoon dépublié que personne ne suit')]

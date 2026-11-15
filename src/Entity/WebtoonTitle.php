@@ -57,6 +57,8 @@ class WebtoonTitle
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank(message: "Le titre est obligatoire.")]
+    // NotBlank et trim() ne voient pas les espaces Unicode (insécable, idéographique) : /u les compte dans \s
+    #[Assert\Regex(pattern: '/\S/u', message: "Le titre est obligatoire.")]
     #[Assert\Length(max: 255, maxMessage: "Le titre ne peut pas dépasser 255 caractères.")]
     #[Groups(['webtoon:read', 'webtoon:write', 'webtoon_title:read', 'webtoon_title:write'])]
     private ?string $title = null;
