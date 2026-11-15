@@ -17,6 +17,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
+use Vich\UploaderBundle\Handler\UploadHandler;
 
 #[ApiResource]
 #[Post(
@@ -54,7 +55,8 @@ final class UploadWebtoonCover implements ProcessorInterface
         private EntityManagerInterface $em,
         private TagAwareCacheInterface $cache,
         private Security $security,
-        private ValidatorInterface $validator
+        private ValidatorInterface $validator,
+        private UploadHandler $uploadHandler
     ) {}
 
     /**
@@ -92,7 +94,11 @@ final class UploadWebtoonCover implements ProcessorInterface
             throw new ValidationException($violations);
         }
 
+        // Sans cet appel, VichUploader n'enregistre le fichier que si Doctrine voit `updated` changer.
+        // Doctrine compare les dates à la seconde : un envoi juste après une modification serait ignoré.
         $webtoon->setImageFile($uploadedFile);
+        $this->uploadHandler->clean($webtoon, 'imageFile');
+        $this->uploadHandler->upload($webtoon, 'imageFile');
         $this->em->flush();
         $this->cache->invalidateTags(['webtoons_list']);
 
