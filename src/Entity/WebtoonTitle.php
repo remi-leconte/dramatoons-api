@@ -56,7 +56,7 @@ class WebtoonTitle
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Assert\NotBlank(message: "Le titre est obligatoire.")]
+    #[Assert\NotBlank(message: "Le titre est obligatoire.", normalizer: "trim")]
     #[Assert\Length(max: 255, maxMessage: "Le titre ne peut pas dépasser 255 caractères.")]
     #[Groups(['webtoon:read', 'webtoon:write', 'webtoon_title:read', 'webtoon_title:write'])]
     private ?string $title = null;

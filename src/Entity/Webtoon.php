@@ -21,6 +21,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[ORM\Entity(repositoryClass: WebtoonRepository::class)]
@@ -78,6 +79,8 @@ final class Webtoon
     #[ORM\OneToOne(cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(name: 'main_title_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     #[Groups(['webtoon:read', 'webtoon:write'])]
+    #[Assert\NotNull(message: 'Le titre est obligatoire.')]
+    #[Assert\Valid]
     private ?WebtoonTitle $title = null;
 
     /**
