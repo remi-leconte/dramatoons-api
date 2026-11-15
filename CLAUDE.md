@@ -98,7 +98,7 @@ Conventions de Symfony et de Docker Compose :
 `.github/workflows/ci.yml` (GitHub Actions) tourne sur chaque PR vers `main` ou `release/*`, sur un runner Ubuntu de GitHub. Deux checks, obligatoires pour fusionner :
 - **Vérifications** : `composer install` (dépendances de dev comprises), puis `composer ci`, qui enchaîne :
   1. `composer validate` : `composer.json` est valide (les avertissements ne bloquent pas) ;
-  2. `composer audit` : aucune faille de sécurité connue dans les dépendances installées ;
+  2. `composer audit` : aucune faille de sécurité connue dans les dépendances installées. Une dépendance abandonnée par son mainteneur est seulement signalée, sans faire échouer la CI ;
   3. `doctrine:schema:validate --skip-sync` : mapping des entités cohérent, sans comparaison avec une base ;
   4. `cache:warmup --env=dev` : compile le conteneur de dev que lit PHPStan (`var/cache/dev/App_KernelDevDebugContainer.xml`) ;
   5. PHPStan, niveau 5, sur `src/` (`phpstan.dist.neon`, extensions Symfony et Doctrine).
