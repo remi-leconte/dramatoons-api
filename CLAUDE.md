@@ -1,6 +1,6 @@
 # Dramatoons : API
 
-Symfony 8.0, API Platform (JSON-LD et JSON), Doctrine ORM 3, PHP 8.4, MariaDB, Redis.
+Symfony 8.1, API Platform (JSON-LD et JSON), Doctrine ORM 3, PHP 8.4, MariaDB, Redis.
 Auth : JWT Lexik (1 h) et refresh token Gesdinet (30 jours, à usage unique), sans état (stateless).
 
 ## Commandes
@@ -98,9 +98,10 @@ Conventions de Symfony et de Docker Compose :
 `.github/workflows/ci.yml` (GitHub Actions) tourne sur chaque PR vers `main` ou `release/*`, sur un runner Ubuntu de GitHub. Deux checks, obligatoires pour fusionner :
 - **Vérifications** : `composer install` (dépendances de dev comprises), puis `composer ci`, qui enchaîne :
   1. `composer validate` : `composer.json` est valide (les avertissements ne bloquent pas) ;
-  2. `doctrine:schema:validate --skip-sync` : mapping des entités cohérent, sans comparaison avec une base ;
-  3. `cache:warmup --env=dev` : compile le conteneur de dev que lit PHPStan (`var/cache/dev/App_KernelDevDebugContainer.xml`) ;
-  4. PHPStan, niveau 5, sur `src/` (`phpstan.dist.neon`, extensions Symfony et Doctrine).
+  2. `composer audit` : aucune faille de sécurité connue dans les dépendances installées. Une dépendance abandonnée par son mainteneur est seulement signalée, sans faire échouer la CI ;
+  3. `doctrine:schema:validate --skip-sync` : mapping des entités cohérent, sans comparaison avec une base ;
+  4. `cache:warmup --env=dev` : compile le conteneur de dev que lit PHPStan (`var/cache/dev/App_KernelDevDebugContainer.xml`) ;
+  5. PHPStan, niveau 5, sur `src/` (`phpstan.dist.neon`, extensions Symfony et Doctrine).
 - **Image prod** : construit l'étape `prod` de `docker/php/Dockerfile`, sans la publier.
 
 La CI n'a pas de base de données : Symfony y lit le `.env` versionné, dont le `DATABASE_URL` n'est jamais contacté (Doctrine exige seulement une URL valide avec la version du serveur). PHPStan et ses extensions sont en `require-dev`, donc absents de l'image prod (`composer install --no-dev`).
