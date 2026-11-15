@@ -86,6 +86,7 @@
             "@php bin/console doctrine:database:create --env=test",
             "@php bin/console doctrine:migrations:migrate --env=test --no-interaction",
             "@php bin/console lexik:jwt:generate-keypair --env=test --skip-if-exists",
+            "@php bin/console cache:pool:clear cache.redis_tag_aware --env=test",
             "@php bin/phpunit"
         ]
     },
