@@ -67,7 +67,7 @@ final class WebtoonCouvertureTest extends ApiTestCase
     public function testCreateurEnvoieJpeg(): void
     {
         $createur = UserFactory::createOne();
-        $webtoon = WebtoonFactory::createOne(['creator' => $createur, 'updated' => new \DateTimeImmutable('-1 day')]);
+        $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
 
         $this->envoyer($createur, $webtoon, $this->jpeg());
 
@@ -75,18 +75,24 @@ final class WebtoonCouvertureTest extends ApiTestCase
         $this->assertJsonContains(['image' => 'webtoon_presentation_'.$webtoon->getSlug().'.jpg']);
     }
 
-    #[TestDox('Une couverture envoyée juste après la création du webtoon est enregistrée')]
+    #[TestDox('Une couverture envoyée juste après la création du webtoon est enregistrée, et un nouvel envoi aussitôt après la remplace')]
     public function testCouvertureJusteApresCreation(): void
     {
-        $this->markTestIncomplete('Écart : depuis Doctrine ORM 3.8, une couverture envoyée dans la même seconde que la dernière modification du webtoon n’est pas enregistrée (ticket api#91).');
-
         $createur = UserFactory::createOne();
         $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
+        $nom = 'webtoon_presentation_'.$webtoon->getSlug().'.jpg';
+        $chemin = static::getContainer()->getParameter('kernel.project_dir').'/var/test/upload/cover/'.$nom;
 
-        $this->envoyer($createur, $webtoon, $this->jpeg());
-
+        $this->envoyer($createur, $webtoon, $this->jpeg(1000));
         $this->assertResponseStatusCodeSame(201);
-        $this->assertJsonContains(['image' => 'webtoon_presentation_'.$webtoon->getSlug().'.jpg']);
+        $this->assertJsonContains(['image' => $nom]);
+        $this->assertFileExists($chemin);
+        $this->assertSame(1000, filesize($chemin));
+
+        $this->envoyer($createur, $webtoon, $this->jpeg(2000));
+        $this->assertResponseStatusCodeSame(201);
+        clearstatcache();
+        $this->assertSame(2000, filesize($chemin));
     }
 
     #[TestDox('Le créateur d’un webtoon publié ne peut pas changer sa couverture : 403')]
@@ -110,7 +116,7 @@ final class WebtoonCouvertureTest extends ApiTestCase
     #[TestDox('Un modérateur change la couverture d’un webtoon publié')]
     public function testModerateur(): void
     {
-        $this->envoyer(UserFactory::new()->moderateur()->create(), WebtoonFactory::new()->publie()->create(['updated' => new \DateTimeImmutable('-1 day')]), $this->jpeg());
+        $this->envoyer(UserFactory::new()->moderateur()->create(), WebtoonFactory::new()->publie()->create(), $this->jpeg());
 
         $this->assertResponseStatusCodeSame(201);
     }
@@ -181,7 +187,7 @@ final class WebtoonCouvertureTest extends ApiTestCase
     #[TestDox('Un administrateur change la couverture d’un webtoon publié')]
     public function testAdministrateur(): void
     {
-        $this->envoyer(UserFactory::new()->administrateur()->create(), WebtoonFactory::new()->publie()->create(['updated' => new \DateTimeImmutable('-1 day')]), $this->jpeg());
+        $this->envoyer(UserFactory::new()->administrateur()->create(), WebtoonFactory::new()->publie()->create(), $this->jpeg());
 
         $this->assertResponseStatusCodeSame(201);
     }
@@ -191,7 +197,7 @@ final class WebtoonCouvertureTest extends ApiTestCase
     {
         $createur = UserFactory::createOne();
 
-        $this->envoyer($createur, WebtoonFactory::createOne(['creator' => $createur, 'updated' => new \DateTimeImmutable('-1 day')]), $this->jpeg(1_000_000));
+        $this->envoyer($createur, WebtoonFactory::createOne(['creator' => $createur]), $this->jpeg(1_000_000));
 
         $this->assertResponseStatusCodeSame(201);
     }
