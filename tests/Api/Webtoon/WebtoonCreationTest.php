@@ -8,7 +8,7 @@ use App\Tests\Factory\UserFactory;
 use App\Tests\Factory\WebtoonFactory;
 use PHPUnit\Framework\Attributes\TestDox;
 
-#[TestDox('Création d’un webtoon (POST /webtoons) et calcul du slug')]
+#[TestDox('Création d’un webtoon (POST /webtoons), titre principal et créateur')]
 final class WebtoonCreationTest extends ApiTestCase
 {
     #[TestDox('Un visiteur non connecté ne peut pas créer de webtoon : 401')]
@@ -104,17 +104,8 @@ final class WebtoonCreationTest extends ApiTestCase
         $this->assertResponseStatusCodeSame(422);
     }
 
-    #[TestDox('Le slug est calculé à partir du titre principal, et la valeur envoyée par le client est ignorée')]
-    public function testSlugCalcule(): void
-    {
-        $this->post(UserFactory::createOne(), '/webtoons', ['title' => ['title' => 'Le Héros Revient !'], 'status' => 'ongoing', 'slug' => 'autre-chose']);
-
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertJsonContains(['slug' => 'le-heros-revient']);
-    }
-
-    #[TestDox('Le slug est recalculé quand le titre principal change')]
-    public function testSlugRecalculeAuChangementDeTitre(): void
+    #[TestDox('Le titre principal peut être modifié par PATCH /webtoons')]
+    public function testModificationDuTitrePrincipal(): void
     {
         $createur = UserFactory::createOne();
         $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
@@ -122,19 +113,7 @@ final class WebtoonCreationTest extends ApiTestCase
         $this->patch($createur, '/webtoons/'.$webtoon->getId(), ['title' => ['title' => 'Nouveau Titre']]);
 
         $this->assertResponseIsSuccessful();
-        $this->assertJsonContains(['slug' => 'nouveau-titre', 'title' => ['title' => 'Nouveau Titre']]);
-    }
-
-    #[TestDox('Le slug ne peut pas être modifié directement, même par un modérateur')]
-    public function testSlugNonModifiable(): void
-    {
-        $webtoon = WebtoonFactory::createOne();
-        $slug = $webtoon->getSlug();
-
-        $this->patch(UserFactory::new()->moderateur()->create(), '/webtoons/'.$webtoon->getId(), ['slug' => 'autre-chose']);
-
-        $this->assertResponseIsSuccessful();
-        $this->assertJsonContains(['slug' => $slug]);
+        $this->assertJsonContains(['title' => ['title' => 'Nouveau Titre']]);
     }
 
     #[TestDox('Le créateur d’un webtoon ne peut pas être changé, même par un modérateur')]
@@ -150,8 +129,8 @@ final class WebtoonCreationTest extends ApiTestCase
         $this->assertSame($createur->getId(), WebtoonFactory::repository()->find($webtoon->getId())?->getCreator()?->getId());
     }
 
-    #[TestDox('Le slug est recalculé quand le titre principal est modifié par /webtoon_titles')]
-    public function testSlugRecalculeParLeTitre(): void
+    #[TestDox('Le titre principal modifié par /webtoon_titles est celui du webtoon')]
+    public function testTitrePrincipalModifieParWebtoonTitles(): void
     {
         $createur = UserFactory::createOne();
         $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
@@ -160,19 +139,18 @@ final class WebtoonCreationTest extends ApiTestCase
         $this->assertResponseIsSuccessful();
 
         $this->client($createur)->request('GET', '/webtoons/'.$webtoon->getId());
-        $this->assertJsonContains(['slug' => 'titre-corrige']);
+        $this->assertJsonContains(['title' => ['title' => 'Titre Corrigé']]);
     }
 
-    #[TestDox('Le créateur ne peut changer ni le slug ni le créateur de son webtoon dépublié : valeurs ignorées')]
-    public function testCreateurNeChangePasSlugNiCreateur(): void
+    #[TestDox('Le créateur ne peut pas changer le créateur de son webtoon dépublié : valeur ignorée')]
+    public function testCreateurNeChangePasLeCreateur(): void
     {
         $createur = UserFactory::createOne();
         $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
-        $slug = $webtoon->getSlug();
 
-        $this->patch($createur, '/webtoons/'.$webtoon->getId(), ['slug' => 'autre-chose', 'creator' => '/users/'.UserFactory::createOne()->getId()]);
+        $this->patch($createur, '/webtoons/'.$webtoon->getId(), ['creator' => '/users/'.UserFactory::createOne()->getId()]);
 
         $this->assertResponseIsSuccessful();
-        $this->assertJsonContains(['slug' => $slug, 'creator' => ['id' => $createur->getId()]]);
+        $this->assertJsonContains(['creator' => ['id' => $createur->getId()]]);
     }
 }
