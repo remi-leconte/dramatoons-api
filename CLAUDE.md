@@ -16,11 +16,11 @@ docker compose exec php php bin/console app:create-admin          # admin initia
 docker compose exec php php bin/console app:create-deleted-user   # compte « Utilisateur supprimé », via DELETED_USER_PASSWORD
 docker compose exec php php bin/console app:test-data             # dev : supprime et recrée les données de test
 docker compose exec php composer ci                               # vérifications de la CI (voir « CI »)
+docker compose exec php composer test                             # tests PHPUnit (voir « Tests »)
 ```
 
 - `compose.override.yaml` (dev) se superpose automatiquement à `compose.yaml` ; en recette et en prod, c'est `compose.prod.yaml` (voir « Configuration »).
 - En prod et staging, l'entrypoint génère les clés JWT et applique les migrations. En dev, les migrations se lancent à la main.
-- Il n'y a pas de tests automatisés.
 - Données de test (`src/Command/TestDataCommand.php`, dev uniquement) : comptes `test-…` (admin, modo, créateur, lecteur, inconnu, désactivé, non vérifié ; mot de passe `test-password`) et webtoons `[TEST] …` couvrant chaque cas de publication et de suivi. Utilisées par l'agent `testeur`.
 
 ## Configuration
@@ -94,17 +94,26 @@ Conventions de Symfony et de Docker Compose :
 - **Réponse** : chaque webtoon porte `userProgress`, le WebtoonUser de l'utilisateur courant.
 - **Cache Redis à tags** : seuls les ids et le total, pendant 10 jours. Tags `webtoons_list` (toute écriture sur Webtoon ou WebtoonTitle) et `user_{id}` (écriture d'un suivi).
 
+## Tests
+PHPUnit, dans `tests/` :
+- `tests/Api/` : tests de l'API par de vraies requêtes HTTP (`ApiTestCase` d'API Platform). Ils héritent de `tests/Api/ApiTestCase.php`, dont `client($utilisateur)` envoie les requêtes avec le JWT de cet utilisateur (sans argument : non connecté). Un fichier par sujet des règles métier, chaque test décrit en français par `#[TestDox]`.
+- `tests/Factory/` : factories Foundry. Chaque test crée les données dont il a besoin (`WebtoonFactory::new()->publie()->create()`, `UserFactory::new()->moderateur()->create()`…) ; il n'utilise pas `app:test-data`.
+- DAMA Doctrine Test Bundle annule chaque test à la fin : la base est vide au début de chaque test.
+
+`composer test` recrée la base `dramatoons_test` (environnement `test` : Symfony ajoute `_test` au nom de la base de `DATABASE_URL`), applique les migrations, génère si besoin les clés JWT de test dans `var/test/jwt/`, puis lance PHPUnit. En environnement `test`, Symfony ne lit pas `.env.local` mais `.env.test` (versionné) puis `.env.test.local` (non versionné) : en dev, `.env.test.local` donne le `DATABASE_URL` d'un compte MariaDB qui peut créer la base de test. Les couvertures envoyées pendant les tests sont écrites dans `var/test/upload/`.
+
 ## CI
-`.github/workflows/ci.yml` (GitHub Actions) tourne sur chaque PR vers `main` ou `release/*`, sur un runner Ubuntu de GitHub. Deux checks, obligatoires pour fusionner :
+`.github/workflows/ci.yml` (GitHub Actions) tourne sur chaque PR vers `main` ou `release/*`, sur un runner Ubuntu de GitHub. Trois checks, obligatoires pour fusionner :
 - **Vérifications** : `composer install` (dépendances de dev comprises), puis `composer ci`, qui enchaîne :
   1. `composer validate` : `composer.json` est valide (les avertissements ne bloquent pas) ;
   2. `composer audit` : aucune faille de sécurité connue dans les dépendances installées. Une dépendance abandonnée par son mainteneur est seulement signalée, sans faire échouer la CI ;
   3. `doctrine:schema:validate --skip-sync` : mapping des entités cohérent, sans comparaison avec une base ;
   4. `cache:warmup --env=dev` : compile le conteneur de dev que lit PHPStan (`var/cache/dev/App_KernelDevDebugContainer.xml`) ;
   5. PHPStan, niveau 5, sur `src/` (`phpstan.dist.neon`, extensions Symfony et Doctrine).
+- **Tests** : démarre MariaDB et Redis (services du job, `DATABASE_URL` et `REDIS_URL` dans l'`env` du job), `composer install`, puis `composer test`.
 - **Image prod** : construit l'étape `prod` de `docker/php/Dockerfile`, sans la publier.
 
-La CI n'a pas de base de données : Symfony y lit le `.env` versionné, dont le `DATABASE_URL` n'est jamais contacté (Doctrine exige seulement une URL valide avec la version du serveur). PHPStan et ses extensions sont en `require-dev`, donc absents de l'image prod (`composer install --no-dev`).
+Le job « Vérifications » n'a pas de base de données : Symfony y lit le `.env` versionné, dont le `DATABASE_URL` n'est jamais contacté (Doctrine exige seulement une URL valide avec la version du serveur). PHPStan, PHPUnit et les outils de test sont en `require-dev`, donc absents de l'image prod (`composer install --no-dev`).
 
 `lint:container` n'est pas lancé : il échoue sur un service de formulaire déclaré par VichUploader, qui exige `symfony/form`, absent car l'API n'a pas de formulaire.
 
