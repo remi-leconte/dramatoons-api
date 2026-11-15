@@ -76,6 +76,7 @@
         ],
         "ci": [
             "@composer validate --no-check-publish",
+            "@composer audit --no-interaction",
             "@php bin/console doctrine:schema:validate --skip-sync",
             "@php bin/console cache:warmup --env=dev",
             "@php vendor/bin/phpstan analyse --no-progress --memory-limit=1G"
