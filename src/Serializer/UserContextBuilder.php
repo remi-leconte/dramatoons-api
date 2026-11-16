@@ -24,30 +24,26 @@ final class UserContextBuilder implements SerializerContextBuilderInterface
             
             $currentUser = $this->security->getUser();
 
-            // Si l'utilisateur connecté est MODO (sur n'importe quelle ressource)
             if ($this->security->isGranted('ROLE_MODO')) {
                 $this->addGroupIfMissing($context, 'webtoon:write:modo'); // publish
-                if ($this->security->isGranted('ROLE_ADMIN')) {
+            }
+
+            $targetUser = $request->attributes->get('data');
+
+            // user:read:owner contient des champs que personne ne doit écrire (roles, verified, lastLogin…) :
+            // il ne sert qu'en lecture, et chaque profil a son propre groupe d'écriture
+            if ($this->security->isGranted('ROLE_ADMIN')) {
+                if ($normalization) {
                     $this->addGroupIfMissing($context, 'user:read:owner');
-                }
-                if (!$normalization) { // POST, PUT, PATCH
-                    $this->addGroupIfMissing($context, 'user:patch:owner'); // email, password, login
-                    if ($this->security->isGranted('ROLE_ADMIN')) {
-                        $this->addGroupIfMissing($context, 'user:patch:admin'); // roles
-                    }
+                } elseif ($targetUser instanceof User) {
+                    // Seulement sur un compte existant : un compte créé, même par un admin, est un utilisateur actif
+                    $this->addGroupIfMissing($context, 'user:patch:admin');
                 }
             }
 
-            // Si un utilisateur est connecté (non-modo)
             if ($currentUser instanceof User) {
-                $targetUser = $request->attributes->get('data');
-
-                // Si la ressource actuelle est un User et que c'est lui-même
                 if ($targetUser instanceof User && $currentUser->getUserIdentifier() === $targetUser->getUserIdentifier()) {
-                    $this->addGroupIfMissing($context, 'user:read:owner');
-                    if (!$normalization) { // POST, PUT, PATCH
-                        $this->addGroupIfMissing($context, 'user:patch:owner');
-                    }
+                    $this->addGroupIfMissing($context, $normalization ? 'user:read:owner' : 'user:patch:owner');
                 }
             }
         }

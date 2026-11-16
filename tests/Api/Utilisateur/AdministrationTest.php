@@ -106,7 +106,6 @@ final class AdministrationTest extends ApiTestCase
     #[TestDox('Un administrateur ne peut pas modifier la vérification de l’email, la dernière connexion ni les dates d’un compte')]
     public function testChampsNonModifiablesParUnAdministrateur(): void
     {
-        $this->markTestIncomplete('Écart : UserContextBuilder ajoute user:read:owner aussi en écriture, ce qui rend verified, lastLogin et updated modifiables (#101)');
         $utilisateur = UserFactory::createOne(['verified' => false, 'lastLogin' => null]);
 
         $this->patch(UserFactory::new()->administrateur()->create(), '/users/'.$utilisateur->getId(), [
@@ -124,7 +123,6 @@ final class AdministrationTest extends ApiTestCase
     #[TestDox('Un administrateur ne peut pas changer directement le mot de passe d’un autre utilisateur')]
     public function testMotDePasseDUnAutre(): void
     {
-        $this->markTestIncomplete('Écart : UserContextBuilder donne user:patch:owner aux administrateurs, donc aussi le mot de passe des autres (#101)');
         $utilisateur = UserFactory::new()->avecMotDePasse('secret')->create();
 
         $this->patch(UserFactory::new()->administrateur()->create(), '/users/'.$utilisateur->getId(), ['password' => 'change']);

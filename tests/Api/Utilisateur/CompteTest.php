@@ -50,6 +50,21 @@ final class CompteTest extends ApiTestCase
         $this->assertFalse($utilisateur->isVerified());
     }
 
+    #[TestDox('Un compte créé par un administrateur connecté est lui aussi un utilisateur actif, au email non vérifié')]
+    public function testInscriptionParUnAdministrateur(): void
+    {
+        $this->post(UserFactory::new()->administrateur()->create(), '/users', [
+            'login' => 'nouveau', 'email' => 'nouveau@dramatoons.test', 'password' => 'secret',
+            'roles' => ['ROLE_ADMIN'], 'publish' => false, 'verified' => true,
+        ]);
+
+        $this->assertResponseStatusCodeSame(201);
+        $utilisateur = $this->utilisateur('nouveau');
+        $this->assertSame(['ROLE_USER'], $utilisateur->getRoles());
+        $this->assertTrue($utilisateur->isPublish());
+        $this->assertFalse($utilisateur->isVerified());
+    }
+
     #[TestDox('Le login, l’email et le mot de passe sont obligatoires : 422')]
     public function testInscriptionChampsObligatoires(): void
     {

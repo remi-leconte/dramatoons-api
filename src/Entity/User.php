@@ -86,7 +86,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 180)]
     #[Assert\NotBlank(message: "L'email est obligatoire.")]
     #[Assert\Email(message: "L'adresse email n'est pas valide.")]
-    #[Groups(['user:read:owner', 'user:write', 'user:patch:owner'])] 
+    #[Groups(['user:read:owner', 'user:write', 'user:patch:owner', 'user:patch:admin'])]
     private ?string $email = null;
 
     #[ORM\Column(type: 'json')]
@@ -95,11 +95,11 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank(message: "Le mot de passe est obligatoire.")]
-    #[Groups(['user:write','user:patch:owner'])] // Symfony sécurise déjà le fait de ne pouvoir modifier que le mot de passe de son propre compte
+    #[Groups(['user:write', 'user:patch:owner'])]
     private ?string $password = null;
 
     #[ORM\Column(length: 255, unique: true)]
-    #[Groups(['user:read', 'webtoon_user:read', 'user:write','user:patch:owner'])]
+    #[Groups(['user:read', 'webtoon_user:read', 'user:write', 'user:patch:owner', 'user:patch:admin'])]
     #[Assert\NotBlank(message: "Le login est obligatoire.")]
     private ?string $login = null;
 
@@ -121,7 +121,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $rememberToken = null;
 
     #[ORM\Column(type: 'boolean', nullable: true, options: ['default' => true])]
-    #[Groups(['user:read:owner'])]
+    #[Groups(['user:read:owner', 'user:patch:admin'])]
     private ?bool $publish = true;
 
     #[ORM\Column(type: 'boolean', nullable: true, options: ['default' => false])]
