@@ -17,10 +17,12 @@ final class Version20261116180000 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // Avant la v2.2.0, un compte était créé avec roles = [] : sans cette correction, la validation
-        // des rôles (un seul) refuserait toute modification de ces comptes
+        // des rôles (un seul) refuserait toute modification de ces comptes. Les rôles ont aussi pu être
+        // enregistrés en objet JSON, d'où JSON_SEARCH : JSON_CONTAINS ne cherche que dans un tableau.
+        // Son motif se lit comme un LIKE : _ est échappé, sinon ROLE-ADMIN deviendrait ROLE_ADMIN
         $this->addSql("UPDATE user SET roles = CASE
-            WHEN JSON_CONTAINS(roles, '\"ROLE_ADMIN\"') THEN '[\"ROLE_ADMIN\"]'
-            WHEN JSON_CONTAINS(roles, '\"ROLE_MODO\"') THEN '[\"ROLE_MODO\"]'
+            WHEN JSON_SEARCH(roles, 'one', 'ROLE!_ADMIN', '!') IS NOT NULL THEN '[\"ROLE_ADMIN\"]'
+            WHEN JSON_SEARCH(roles, 'one', 'ROLE!_MODO', '!') IS NOT NULL THEN '[\"ROLE_MODO\"]'
             ELSE '[\"ROLE_USER\"]'
         END
         WHERE roles NOT IN ('[\"ROLE_USER\"]', '[\"ROLE_MODO\"]', '[\"ROLE_ADMIN\"]')");

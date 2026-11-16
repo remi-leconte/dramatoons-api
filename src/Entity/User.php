@@ -90,6 +90,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $email = null;
 
     #[ORM\Column(type: 'json')]
+    #[Assert\Type(type: 'list', message: 'Les rôles doivent être une liste.')]
     #[Assert\Count(exactly: 1, exactMessage: 'Un utilisateur a un seul rôle.')]
     #[Assert\All([new Assert\NotNull(message: "Ce rôle n'existe pas."), new Assert\Choice(choices: ['ROLE_USER', 'ROLE_MODO', 'ROLE_ADMIN'], message: "Ce rôle n'existe pas.")])]
     #[Groups(['user:read:owner', 'user:patch:admin'])]

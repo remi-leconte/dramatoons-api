@@ -83,7 +83,7 @@ final class AdministrationTest extends ApiTestCase
         $utilisateur = UserFactory::createOne();
         $administrateur = UserFactory::new()->administrateur()->create();
 
-        foreach ([['ROLE_MODO', 'ROLE_ADMIN'], ['ROLE_INCONNU'], [null], []] as $roles) {
+        foreach ([['ROLE_MODO', 'ROLE_ADMIN'], ['ROLE_INCONNU'], [null], [], ['a' => 'ROLE_ADMIN']] as $roles) {
             $this->patch($administrateur, '/users/'.$utilisateur->getId(), ['roles' => $roles]);
             $this->assertResponseStatusCodeSame(422, 'Rôles refusés : '.json_encode($roles));
         }
@@ -93,7 +93,7 @@ final class AdministrationTest extends ApiTestCase
     public function testMigrationDesRoles(): void
     {
         $attendus = [];
-        foreach ([[[], 'ROLE_USER'], [['ROLE_USER', 'ROLE_MODO'], 'ROLE_MODO'], [['ROLE_ADMIN', 'ROLE_MODO'], 'ROLE_ADMIN'], [['ROLE_INCONNU'], 'ROLE_USER'], [['ROLE_MODO'], 'ROLE_MODO']] as [$roles, $role]) {
+        foreach ([[[], 'ROLE_USER'], [['ROLE_USER', 'ROLE_MODO'], 'ROLE_MODO'], [['ROLE_ADMIN', 'ROLE_MODO'], 'ROLE_ADMIN'], [['ROLE_INCONNU'], 'ROLE_USER'], [['x' => 'ROLE_ADMIN'], 'ROLE_ADMIN'], [['ROLE-ADMIN'], 'ROLE_USER'], [['ROLE_MODO'], 'ROLE_MODO']] as [$roles, $role]) {
             $attendus[UserFactory::createOne(['roles' => $roles])->getId()] = [$role];
         }
 
