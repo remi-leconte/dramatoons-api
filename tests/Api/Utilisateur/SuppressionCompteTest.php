@@ -48,7 +48,7 @@ final class SuppressionCompteTest extends ApiTestCase
         $suiviDUnWebtoonPublic = WebtoonUserFactory::createOne(['reader' => $utilisateur, 'webtoon' => WebtoonFactory::new()->publie()]);
         $nonSuivi = WebtoonFactory::createOne(['creator' => $utilisateur]);
         $suiviParLuiSeul = WebtoonFactory::createOne(['creator' => $utilisateur]);
-        WebtoonUserFactory::createOne(['reader' => $utilisateur, 'webtoon' => $suiviParLuiSeul, 'state' => 'reading']);
+        WebtoonUserFactory::createOne(['reader' => $utilisateur, 'webtoon' => $suiviParLuiSeul]);
         $publie = WebtoonFactory::new()->publie()->create(['creator' => $utilisateur]);
         $suiviParUnAutre = WebtoonFactory::createOne(['creator' => $utilisateur]);
         WebtoonUserFactory::createOne(['reader' => $autre, 'webtoon' => $suiviParUnAutre]);
