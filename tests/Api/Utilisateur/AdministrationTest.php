@@ -7,7 +7,11 @@ use App\Tests\Api\ApiTestCase;
 use App\Tests\Factory\UserFactory;
 use App\Tests\Factory\WebtoonFactory;
 use App\Tests\Factory\WebtoonUserFactory;
+use DoctrineMigrations\Version20261116180000;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\Schema;
 use PHPUnit\Framework\Attributes\TestDox;
+use Psr\Log\NullLogger;
 
 #[TestDox('Administration des utilisateurs : réservée aux administrateurs')]
 final class AdministrationTest extends ApiTestCase
@@ -83,6 +87,30 @@ final class AdministrationTest extends ApiTestCase
             $this->patch($administrateur, '/users/'.$utilisateur->getId(), ['roles' => $roles]);
             $this->assertResponseStatusCodeSame(422, 'Rôles refusés : '.json_encode($roles));
         }
+    }
+
+    #[TestDox('La migration des rôles donne à chaque compte un seul rôle, le plus haut qu’il avait : un compte créé sans rôle peut de nouveau modifier son profil')]
+    public function testMigrationDesRoles(): void
+    {
+        $attendus = [];
+        foreach ([[[], 'ROLE_USER'], [['ROLE_USER', 'ROLE_MODO'], 'ROLE_MODO'], [['ROLE_ADMIN', 'ROLE_MODO'], 'ROLE_ADMIN'], [['ROLE_INCONNU'], 'ROLE_USER'], [['ROLE_MODO'], 'ROLE_MODO']] as [$roles, $role]) {
+            $attendus[UserFactory::createOne(['roles' => $roles])->getId()] = [$role];
+        }
+
+        require_once \dirname(__DIR__, 3).'/migrations/Version20261116180000.php';
+        $connexion = static::getContainer()->get(Connection::class);
+        $migration = new Version20261116180000($connexion, new NullLogger());
+        $migration->up(new Schema());
+        foreach ($migration->getSql() as $requete) {
+            $connexion->executeStatement($requete->getStatement());
+        }
+
+        foreach ($attendus as $id => $roles) {
+            $this->assertSame($roles, json_decode($connexion->fetchOne('SELECT roles FROM user WHERE id = ?', [$id]), true));
+        }
+        $sansRole = UserFactory::find(array_key_first($attendus));
+        $this->patch($sansRole, '/users/'.$sansRole->getId(), ['email' => 'migre@dramatoons.test']);
+        $this->assertResponseIsSuccessful();
     }
 
     #[TestDox('Un administrateur désactive puis réactive un compte : la connexion est refusée puis acceptée')]
