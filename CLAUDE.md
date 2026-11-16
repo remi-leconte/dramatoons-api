@@ -53,7 +53,7 @@ Conventions de Symfony et de Docker Compose :
   - `webtoon:write:modo` (`publish`) à partir de MODO ;
   - `user:read:owner` (id, email, rôles, état, dates de modification et de dernière connexion), en lecture seulement, au propriétaire et à l'admin ;
   - `user:patch:owner` (login, email, mot de passe), en écriture, au propriétaire ;
-  - `user:patch:admin` (login, email, rôles, activation `publish`), en écriture, à l'admin, seulement sur un compte existant (pas à la création) : jamais le mot de passe d'un autre compte.
+  - `user:patch:admin` (login, email, rôles : un seul, parmi `ROLE_USER`, `ROLE_MODO` et `ROLE_ADMIN`, sinon 422 ; activation `publish`), en écriture, à l'admin, seulement sur un compte existant (pas à la création) : jamais le mot de passe d'un autre compte.
 - `src/EventListener/` :
   - recalcul des stats d'un webtoon (`WebtoonUserListener`) ;
   - invalidation du cache (`WebtoonCacheInvalidatorListener`) ;
