@@ -6,6 +6,7 @@ use ApiPlatform\Symfony\Bundle\Test\ApiTestCase as BaseApiTestCase;
 use ApiPlatform\Symfony\Bundle\Test\Client;
 use App\Entity\User;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 use Zenstruck\Foundry\Test\Factories;
 
@@ -60,6 +61,20 @@ abstract class ApiTestCase extends BaseApiTestCase
         unset($corps['@id']);
 
         return [$reponse->getStatusCode(), $corps];
+    }
+
+    /**
+     * Jeton du lien `$chemin?token=…` contenu dans le seul mail envoyé par la dernière requête, après avoir vérifié son destinataire.
+     */
+    protected function jetonDuMail(string $chemin, string $destinataire): string
+    {
+        $this->assertEmailCount(1);
+        $mail = $this->getMailerMessage();
+        $this->assertInstanceOf(Email::class, $mail);
+        $this->assertEmailAddressContains($mail, 'To', $destinataire);
+        $this->assertSame(1, preg_match('#'.preg_quote($chemin, '#').'\?token=([0-9a-f]+)#', (string) $mail->getHtmlBody(), $lien), 'Le mail ne contient pas de lien '.$chemin);
+
+        return $lien[1];
     }
 
     /**

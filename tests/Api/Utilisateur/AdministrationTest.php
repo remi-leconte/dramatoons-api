@@ -141,14 +141,10 @@ final class AdministrationTest extends ApiTestCase
 
         $this->post($administrateur, '/users/forgot-password', ['email' => $utilisateur->getEmail()]);
         $this->assertResponseIsSuccessful();
-        $this->assertEmailCount(1);
-        $this->assertEmailAddressContains($this->getMailerMessage(), 'To', $utilisateur->getEmail());
-        $this->assertEmailHtmlBodyContains($this->getMailerMessage(), '/reset-password?token=');
+        $this->jetonDuMail('/reset-password', $utilisateur->getEmail());
 
         $this->post($administrateur, '/users/resend-verification', ['email' => $utilisateur->getEmail()]);
         $this->assertResponseIsSuccessful();
-        $this->assertEmailCount(1);
-        $this->assertEmailAddressContains($this->getMailerMessage(), 'To', $utilisateur->getEmail());
-        $this->assertEmailHtmlBodyContains($this->getMailerMessage(), '/verify?token=');
+        $this->jetonDuMail('/verify', $utilisateur->getEmail());
     }
 }

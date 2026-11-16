@@ -7,7 +7,6 @@ use App\Repository\UserRepository;
 use App\Tests\Api\ApiTestCase;
 use App\Tests\Factory\UserFactory;
 use PHPUnit\Framework\Attributes\TestDox;
-use Symfony\Component\Mime\Email;
 
 #[TestDox('Vérification de l’email : lien valable 1 h (POST /users/verify et /users/resend-verification)')]
 final class VerificationEmailTest extends ApiTestCase
@@ -17,28 +16,13 @@ final class VerificationEmailTest extends ApiTestCase
         return static::getContainer()->get(UserRepository::class)->find($id);
     }
 
-    /**
-     * Jeton du lien contenu dans le dernier email envoyé, après avoir vérifié son destinataire.
-     */
-    private function jetonDuMail(string $destinataire): string
-    {
-        $this->assertEmailCount(1);
-        $email = $this->getMailerMessage();
-        $this->assertInstanceOf(Email::class, $email);
-        $this->assertEmailAddressContains($email, 'To', $destinataire);
-        $this->assertMatchesRegularExpression('#/verify\?token=([0-9a-f]+)#', $email->getHtmlBody());
-        preg_match('#/verify\?token=([0-9a-f]+)#', $email->getHtmlBody(), $lien);
-
-        return $lien[1];
-    }
-
     #[TestDox('À l’inscription, un lien de vérification valable 1 h est envoyé à l’email du compte')]
     public function testLienALInscription(): void
     {
         $this->post(null, '/users', ['login' => 'nouveau', 'email' => 'nouveau@dramatoons.test', 'password' => 'secret']);
 
         $this->assertResponseStatusCodeSame(201);
-        $this->jetonDuMail('nouveau@dramatoons.test');
+        $this->jetonDuMail('/verify', 'nouveau@dramatoons.test');
         $utilisateur = static::getContainer()->get(UserRepository::class)->findOneBy(['login' => 'nouveau']);
         $this->assertEqualsWithDelta((new \DateTimeImmutable('+1 hour'))->getTimestamp(), $utilisateur->getResetTokenExpiration()->getTimestamp(), 60);
     }
@@ -47,7 +31,7 @@ final class VerificationEmailTest extends ApiTestCase
     public function testVerification(): void
     {
         $this->post(null, '/users', ['login' => 'nouveau', 'email' => 'nouveau@dramatoons.test', 'password' => 'secret']);
-        $jeton = $this->jetonDuMail('nouveau@dramatoons.test');
+        $jeton = $this->jetonDuMail('/verify', 'nouveau@dramatoons.test');
 
         $this->post(null, '/users/verify', ['token' => $jeton]);
         $this->assertResponseIsSuccessful();
@@ -84,7 +68,7 @@ final class VerificationEmailTest extends ApiTestCase
         $this->patch($utilisateur, '/users/'.$utilisateur->getId(), ['email' => 'nouvelle@dramatoons.test']);
 
         $this->assertResponseIsSuccessful();
-        $this->jetonDuMail('nouvelle@dramatoons.test');
+        $this->jetonDuMail('/verify', 'nouvelle@dramatoons.test');
         $enBase = $this->utilisateur($utilisateur->getId());
         $this->assertFalse($enBase->isVerified());
         $this->assertEqualsWithDelta((new \DateTimeImmutable('+1 hour'))->getTimestamp(), $enBase->getResetTokenExpiration()->getTimestamp(), 60);
@@ -98,7 +82,7 @@ final class VerificationEmailTest extends ApiTestCase
         $this->patch(UserFactory::new()->administrateur()->create(), '/users/'.$utilisateur->getId(), ['email' => 'nouvelle@dramatoons.test']);
 
         $this->assertResponseIsSuccessful();
-        $this->jetonDuMail('nouvelle@dramatoons.test');
+        $this->jetonDuMail('/verify', 'nouvelle@dramatoons.test');
         $this->assertFalse($this->utilisateur($utilisateur->getId())->isVerified());
     }
 
@@ -122,7 +106,7 @@ final class VerificationEmailTest extends ApiTestCase
         $this->post($utilisateur, '/users/resend-verification', ['email' => $utilisateur->getEmail()]);
 
         $this->assertResponseIsSuccessful();
-        $jeton = $this->jetonDuMail($utilisateur->getEmail());
+        $jeton = $this->jetonDuMail('/verify', $utilisateur->getEmail());
         $this->post(null, '/users/verify', ['token' => $jeton]);
         $this->assertResponseIsSuccessful();
     }

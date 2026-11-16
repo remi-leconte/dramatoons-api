@@ -6,7 +6,6 @@ use App\Repository\UserRepository;
 use App\Tests\Api\ApiTestCase;
 use App\Tests\Factory\UserFactory;
 use PHPUnit\Framework\Attributes\TestDox;
-use Symfony\Component\Mime\Email;
 
 #[TestDox('Mot de passe oublié : lien valable 1 h (POST /users/forgot-password et /users/reset-password)')]
 final class MotDePasseOublieTest extends ApiTestCase
@@ -15,14 +14,8 @@ final class MotDePasseOublieTest extends ApiTestCase
     {
         $this->post(null, '/users/forgot-password', ['email' => $email]);
         $this->assertResponseIsSuccessful();
-        $this->assertEmailCount(1);
-        $mail = $this->getMailerMessage();
-        $this->assertInstanceOf(Email::class, $mail);
-        $this->assertEmailAddressContains($mail, 'To', $email);
-        preg_match('#/reset-password\?token=([0-9a-f]+)#', $mail->getHtmlBody(), $lien);
-        $this->assertNotEmpty($lien, 'Le mail ne contient pas de lien de réinitialisation');
 
-        return $lien[1];
+        return $this->jetonDuMail('/reset-password', $email);
     }
 
     #[TestDox('L’utilisateur saisit son email et reçoit un lien valable 1 h')]
@@ -99,7 +92,7 @@ final class MotDePasseOublieTest extends ApiTestCase
         // Lien de vérification puis lien de mot de passe oublié
         $premier = UserFactory::createOne(['verified' => false]);
         $this->post(null, '/users/resend-verification', ['email' => $premier->getEmail()]);
-        $verification = $this->jetonDuLien('/verify');
+        $verification = $this->jetonDuMail('/verify', $premier->getEmail());
         $reinitialisation = $this->demanderLien($premier->getEmail());
 
         $this->post(null, '/users/reset-password', ['token' => $verification, 'password' => 'pirate']);
@@ -113,21 +106,10 @@ final class MotDePasseOublieTest extends ApiTestCase
         $second = UserFactory::createOne(['verified' => false]);
         $reinitialisation = $this->demanderLien($second->getEmail());
         $this->post(null, '/users/resend-verification', ['email' => $second->getEmail()]);
-        $this->jetonDuLien('/verify');
+        $this->jetonDuMail('/verify', $second->getEmail());
 
         $this->post(null, '/users/reset-password', ['token' => $reinitialisation, 'password' => 'nouveau']);
         $this->assertResponseIsSuccessful('Redemander un lien de vérification n’invalide pas le lien de mot de passe oublié');
-    }
-
-    private function jetonDuLien(string $chemin): string
-    {
-        $this->assertEmailCount(1);
-        $mail = $this->getMailerMessage();
-        $this->assertInstanceOf(Email::class, $mail);
-        preg_match('#'.$chemin.'\?token=([0-9a-f]+)#', $mail->getHtmlBody(), $lien);
-        $this->assertNotEmpty($lien);
-
-        return $lien[1];
     }
 
     #[TestDox('Un lien inconnu est refusé : 404')]
