@@ -76,11 +76,10 @@ final class AdministrationTest extends ApiTestCase
     #[TestDox('Un utilisateur n’a qu’un seul rôle, parmi utilisateur, modérateur et administrateur : 422 sinon')]
     public function testUnSeulRoleValide(): void
     {
-        $this->markTestIncomplete('Écart : les rôles ne sont pas validés, plusieurs rôles ou un rôle inconnu sont acceptés (#102)');
         $utilisateur = UserFactory::createOne();
         $administrateur = UserFactory::new()->administrateur()->create();
 
-        foreach ([['ROLE_MODO', 'ROLE_ADMIN'], ['ROLE_INCONNU'], []] as $roles) {
+        foreach ([['ROLE_MODO', 'ROLE_ADMIN'], ['ROLE_INCONNU'], [null], []] as $roles) {
             $this->patch($administrateur, '/users/'.$utilisateur->getId(), ['roles' => $roles]);
             $this->assertResponseStatusCodeSame(422, 'Rôles refusés : '.json_encode($roles));
         }
