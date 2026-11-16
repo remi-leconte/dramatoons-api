@@ -46,14 +46,14 @@ Conventions de Symfony et de Docker Compose :
   - `WebtoonProvider` : listing de `GET /webtoons` ;
   - `WebtoonProcessor` : affecte le créateur et le titre ;
   - `WebtoonUserProcessor` : force `reader` = utilisateur courant ;
-  - `UserProcessor` : hash du mot de passe, mail de vérification ;
+  - `UserProcessor` : hash du mot de passe (seulement s'il a été désérialisé, donc autorisé par les groupes), mail de vérification ;
   - `UserDeleteProcessor` : à la suppression d'un compte, supprime ses webtoons dépubliés suivis par personne d'autre que lui, attribue les autres au compte « Utilisateur supprimé » (`User::DELETED_USER_LOGIN`), qui lui-même ne peut pas être supprimé.
 - `src/Repository/WebtoonRepository.php` : requêtes du listing.
 - `src/Serializer/UserContextBuilder.php` : ajoute des groupes selon le rôle :
   - `webtoon:write:modo` (`publish`) à partir de MODO ;
-  - `user:patch:owner` (email, mot de passe, login) au propriétaire et aux MODO ;
-  - `user:read:owner` (id, email, rôles, état, dates de modification et de dernière connexion) au propriétaire et à l'admin ;
-  - `user:patch:admin` (rôles) à l'admin.
+  - `user:read:owner` (id, email, rôles, état, dates de modification et de dernière connexion), en lecture seulement, au propriétaire et à l'admin ;
+  - `user:patch:owner` (login, email, mot de passe), en écriture, au propriétaire ;
+  - `user:patch:admin` (login, email, rôles, activation `publish`), en écriture, à l'admin, seulement sur un compte existant (pas à la création) : jamais le mot de passe d'un autre compte.
 - `src/EventListener/` :
   - recalcul des stats d'un webtoon (`WebtoonUserListener`) ;
   - invalidation du cache (`WebtoonCacheInvalidatorListener`) ;

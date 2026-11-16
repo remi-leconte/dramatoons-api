@@ -22,22 +22,11 @@ final class UserProcessor implements ProcessorInterface
     {
         $isNew = null === $data->getId();
         $previousData = $context['previous_data'] ?? null;
-        $request = $context['request'] ?? null;
-        $jsonData = [];
 
-        if ($request) {
-            $jsonData = json_decode($request->getContent(), true) ?? [];
-        }
-
-        // Gestion du mot de passe
-        if (isset($jsonData['password']) && !empty($jsonData['password'])) {
-            $hashedPassword = $this->passwordHasher->hashPassword(
-                $data,
-                $jsonData['password']
-            );
-            $data->setPassword($hashedPassword);
-        } elseif (!$isNew && $previousData instanceof User) {
-            $data->setPassword($previousData->getPassword());
+        // Le mot de passe n'est lu que par le désérialiseur, qui respecte les groupes : un administrateur
+        // ne peut pas changer celui d'un autre compte. S'il a changé, l'entité contient le mot de passe en clair.
+        if ($isNew || ($previousData instanceof User && $data->getPassword() !== $previousData->getPassword())) {
+            $data->setPassword($this->passwordHasher->hashPassword($data, $data->getPassword()));
         }
 
         // Vérification du changement d'email

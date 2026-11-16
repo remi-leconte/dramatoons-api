@@ -83,7 +83,6 @@ final class ProfilTest extends ApiTestCase
     #[TestDox('Un utilisateur ne peut changer ni son rôle, ni l’état de son compte, ni la vérification de son email')]
     public function testChampsProteges(): void
     {
-        $this->markTestIncomplete('Écart : UserContextBuilder ajoute user:read:owner aussi en écriture, ce qui rend roles, publish et verified modifiables (#101)');
         $utilisateur = UserFactory::createOne(['verified' => false]);
 
         $this->patch($utilisateur, '/users/'.$utilisateur->getId(), ['roles' => ['ROLE_ADMIN'], 'publish' => false, 'verified' => true]);
