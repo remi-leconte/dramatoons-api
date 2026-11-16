@@ -38,4 +38,15 @@ final class UserFactory extends PersistentObjectFactory
     {
         return $this->with(['roles' => ['ROLE_ADMIN']]);
     }
+
+    public function avecMotDePasse(string $motDePasse): self
+    {
+        // Coût minimal : le hasheur « auto » de Symfony vérifie n'importe quel hash bcrypt
+        return $this->with(['password' => password_hash($motDePasse, \PASSWORD_BCRYPT, ['cost' => 4])]);
+    }
+
+    public function compteUtilisateurSupprime(): self
+    {
+        return $this->with(['login' => User::DELETED_USER_LOGIN, 'publish' => false]);
+    }
 }

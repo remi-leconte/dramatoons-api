@@ -49,6 +49,28 @@ abstract class ApiTestCase extends BaseApiTestCase
     }
 
     /**
+     * Code et corps d'une réponse, sans le @id que JSON-LD tire au hasard pour une ressource sans identifiant :
+     * deux réponses identiques pour l'utilisateur donnent le même résultat.
+     *
+     * @return array{int, array<string, mixed>}
+     */
+    protected function reponseComparable(ResponseInterface $reponse): array
+    {
+        $corps = $reponse->toArray(false);
+        unset($corps['@id']);
+
+        return [$reponse->getStatusCode(), $corps];
+    }
+
+    /**
+     * json_login n'accepte que application/json, pas le JSON-LD envoyé par post().
+     */
+    protected function connexion(string $login, string $motDePasse): ResponseInterface
+    {
+        return $this->client()->request('POST', '/login', ['json' => ['login' => $login, 'password' => $motDePasse]]);
+    }
+
+    /**
      * Ids des webtoons renvoyés par le listing, dans l'ordre.
      *
      * @param array<string, string> $parametres
