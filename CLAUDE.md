@@ -118,5 +118,12 @@ Le job « Vérifications » n'a pas de base de données : Symfony y lit le `.env
 
 `lint:container` n'est pas lancé : il échoue sur un service de formulaire déclaré par VichUploader, qui exige `symfony/form`, absent car l'API n'a pas de formulaire.
 
+## Publication des images
+`.github/workflows/publish.yml` construit l'étape `prod` du Dockerfile (`linux/amd64`) et la publie, publique, sur `ghcr.io/remi-leconte/dramatoons-api`. Seule l'image `php` est publiée : nginx, MariaDB et Redis sont des images officielles.
+- Déclenché par un `push` sur `release/*` (donc la fusion d'une PR) et par un tag `v*`, jamais par une PR : seul ce qui est déjà passé par la CI est publié.
+- Étiquettes : `release-vX.Y.Z` (dernière fusion dans la release) et `sha-<commit>` sur `release/vX.Y.Z` ; `vX.Y.Z` sur un tag. Pas de `latest`.
+- Droits : le `GITHUB_TOKEN` du workflow, limité à `packages: write` ; aucun secret.
+- Les serveurs construisent encore leur image (`build:` dans `compose.prod.yaml`) : ils utiliseront les images publiées avec le déploiement automatique.
+
 ## Git
 Workflow (branches, PR, tickets, releases) : skill `workflow-github`. `.env.local` et `config/jwt/*.pem` ne sont pas versionnés.
