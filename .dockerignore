@@ -10,3 +10,11 @@ public/upload
 var
 vendor
 compose*.yaml
+
+# Tests et outillage de développement : inutiles en production (le dev monte le dossier, la CI ne construit pas d'image pour les tests)
+tests
+.env.test
+phpunit.dist.xml
+phpstan.dist.neon
+.phpunit.cache
+CLAUDE.md
