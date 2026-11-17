@@ -19,9 +19,9 @@ docker compose exec php composer ci                               # vérificatio
 docker compose exec php composer test                             # tests PHPUnit (voir « Tests »)
 ```
 
-- `compose.override.yaml` (dev) se superpose automatiquement à `compose.yaml` ; en recette et en prod, c'est `compose.prod.yaml` (voir « Configuration »).
-- En prod et staging, l'entrypoint génère les clés JWT et applique les migrations. En dev, les migrations se lancent à la main.
-- Données de test (`src/Command/TestDataCommand.php`, dev uniquement) : comptes `test-…` (admin, modo, créateur, lecteur, inconnu, désactivé, non vérifié ; mot de passe `test-password`) et webtoons `[TEST] …` couvrant chaque cas de publication et de suivi. Utilisées par l'agent `testeur`.
+- `compose.override.yaml` (dev) se superpose automatiquement à `compose.yaml` et construit l'image `dev` ; en recette et en prod, c'est `compose.prod.yaml`, qui utilise l'image publiée (voir « Configuration » et « Publication et déploiement »).
+- En prod et staging, l'entrypoint génère les clés JWT et applique les migrations ; `php` attend pour démarrer que MariaDB accepte les connexions. En dev, les migrations se lancent à la main.
+- Données de test (`src/Command/TestDataCommand.php`, dev uniquement) : comptes `test-…` (admin, modo, créateur, lecteur, inconnu, désactivé, non vérifié ; mot de passe `test-password`) et webtoons `[TEST] …` couvrant chaque cas de publication et de suivi, pour essayer l'application à la main.
 
 ## Configuration
 Conventions de Symfony et de Docker Compose :
@@ -29,14 +29,14 @@ Conventions de Symfony et de Docker Compose :
 - **`.env.local`**, non versionné et exclu de l'image (`.dockerignore`) : valeurs propres à une machine. En dev, Symfony le lit après `.env`.
 - **Dans les conteneurs**, les vraies variables d'environnement l'emportent sur ces fichiers. `compose.yaml` passe `REDIS_URL`, et `compose.prod.yaml` passe `DATABASE_URL`, construite à partir des variables `MARIADB_*` (MariaDB et PHP partagent ainsi les mêmes valeurs).
 - **En dev**, Compose lit seulement `.env`, jamais `.env.local` : MariaDB prend les valeurs par défaut de `compose.yaml` (`dramatoons`, `!ChangeMe!`), et le `DATABASE_URL` de `.env` leur correspond. MariaDB ne lit ces variables qu'à la création de sa base (volume vide) : avec une base existante, `.env.local` doit donc définir le `DATABASE_URL` de ses identifiants réels.
-- **En recette et en prod**, une seule configuration, `compose.prod.yaml`, avec des valeurs différentes. Chaque serveur a un `.env.local` passé à Compose par `docker compose --env-file .env.local …`. Il contient :
+- **En recette et en prod**, une seule configuration, `compose.prod.yaml`, avec des valeurs différentes. Chaque serveur a un `.env.local` passé à Compose par `docker compose --env-file .env.local --env-file .env.image …`. `.env.image`, écrit par chaque déploiement, contient seulement `IMAGE_TAG` (`sha-<commit>` de l'image qui tourne). `.env.local` contient :
   - `COMPOSE_FILE=compose.yaml:compose.prod.yaml` ;
   - `DEPLOY_ENV` (`staging` ou `prod`) : nom du projet Compose et des volumes de données ;
   - `HTTP_PORT` : port local de nginx ;
   - les variables `MARIADB_*` (`MARIADB_USER` et `MARIADB_PASSWORD` sans `@ : / ? # %`, car elles entrent telles quelles dans `DATABASE_URL`), `APP_SECRET`, `DEFAULT_URI`, `FRONTEND_URL`, `CORS_ALLOW_ORIGIN`, `MAILER_DSN`, `JWT_PASSPHRASE` : obligatoires, Compose refuse de démarrer s'il en manque une ;
   - `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD`, `DELETED_USER_PASSWORD` : seulement pour les commandes `app:create-admin` et `app:create-deleted-user`.
 - Compose remplace les `$` des valeurs de `.env.local` : une valeur qui en contient se met entre apostrophes (`'…'`).
-- Sur un serveur, une commande `docker compose` lancée sans `--env-file .env.local` lit le `.env` de dev et vise la pile de dev.
+- Sur un serveur, une commande `docker compose` lancée sans `--env-file .env.local` lit le `.env` de dev et vise la pile de dev ; sans `--env-file .env.image`, Compose refuse, faute de `IMAGE_TAG`.
 - Une nouvelle variable d'environnement s'ajoute dans `.env` (valeur de dev) et dans l'`environment` de `compose.prod.yaml`.
 
 ## Organisation
@@ -118,13 +118,21 @@ Le job « Vérifications » n'a pas de base de données : Symfony y lit le `.env
 
 `lint:container` n'est pas lancé : il échoue sur un service de formulaire déclaré par VichUploader, qui exige `symfony/form`, absent car l'API n'a pas de formulaire.
 
-## Publication des images
+## Publication et déploiement
 `.github/workflows/publish.yml` construit l'étape `prod` du Dockerfile (`linux/amd64`) et la publie, publique, sur `ghcr.io/remi-leconte/dramatoons-api`. Seule l'image `php` est publiée : nginx, MariaDB et Redis sont des images officielles.
 - Déclenché par un `push` sur `release/*` (donc la fusion d'une PR) et par un tag `v*`, jamais par une PR : seul ce qui est déjà passé par la CI est publié.
 - Étiquettes : `release-vX.Y.Z` (dernière fusion dans la release) et `sha-<commit>` sur `release/vX.Y.Z` ; `vX.Y.Z` sur un tag. Pas de `latest`.
 - Job « Publication image », distinct du check « Image prod » de la CI. Les publications d'une même branche passent l'une après l'autre, sans annulation ; seule exception de GitHub : sur trois fusions très rapprochées, celle du milieu, encore en attente, est remplacée et son `sha-<commit>` n'est pas publié.
 - Droits : le `GITHUB_TOKEN` du workflow, limité à `contents: read` et `packages: write` ; aucun secret.
-- Les serveurs construisent encore leur image (`build:` dans `compose.prod.yaml`) : ils utiliseront les images publiées avec le déploiement automatique.
+- `.dockerignore` exclut de l'image ce qui ne sert pas en production : tests, outillage de développement, `CLAUDE.md`.
+
+Sur `release/*`, le job « Déploiement recette » suit la publication :
+- Il tourne dans l'environnement GitHub `staging`, dont les secrets (`SSH_HOST`, `SSH_KNOWN_HOSTS`, `SSH_PRIVATE_KEY`) ne sont donnés qu'aux branches `release/*`.
+- Il se connecte au serveur avec une clé dédiée, limitée côté serveur à un script de déploiement (hors dépôt), et ne lui transmet que `api` et le commit. Le script télécharge `compose.yaml`, `compose.prod.yaml` et `docker/nginx/default.conf` de ce commit, récupère l'image `sha-<commit>`, redémarre la pile (les migrations passent au démarrage de `php`), vérifie que l'API répond, puis supprime les anciennes images.
+- Le serveur ne construit rien et n'a plus besoin du code : seuls `.env.local`, `config/jwt/` et les volumes y restent.
+- Revenir à une version précédente : relancer (« Re-run jobs ») le workflow d'un commit précédent de la release.
+- Les journaux de GitHub Actions sont publics : le script n'y écrit ni configuration ni journaux des conteneurs.
+- La production n'est pas encore déployée par ce workflow.
 
 ## Git
 Workflow (branches, PR, tickets, releases) : skill `workflow-github`. `.env.local` et `config/jwt/*.pem` ne sont pas versionnés.

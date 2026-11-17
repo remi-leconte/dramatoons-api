@@ -2,8 +2,8 @@ name: dramatoons_api_${DEPLOY_ENV:?DEPLOY_ENV vaut staging ou prod}
 
 services:
   php:
-    build:
-      target: prod
+    # Image publiée par publish.yml : le serveur ne construit rien
+    image: ghcr.io/remi-leconte/dramatoons-api:${IMAGE_TAG:?IMAGE_TAG vaut sha-<commit>}
     environment:
       APP_ENV: prod
       APP_DEBUG: "0"

@@ -1,6 +1,7 @@
 name: Publication
 
-# Après la CI de la PR : publie l'image prod, celle que la recette puis la prod utiliseront telle quelle
+# Après la CI de la PR : publie l'image prod, celle que la recette puis la prod utiliseront telle quelle,
+# puis déploie la recette (branches release/* seulement)
 on:
   push:
     branches:
@@ -8,9 +9,7 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: read
-  packages: write
+permissions: {}
 
 # Deux fusions rapprochées : les publications passent l'une après l'autre, dans l'ordre, pour que
 # release-vX.Y.Z soit écrite en dernier par le dernier commit, sans annuler une publication en cours
@@ -23,6 +22,9 @@ jobs:
     # Distinct du check « Image prod » de la CI, exigé par le ruleset
     name: Publication image
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
 
@@ -55,3 +57,25 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  recette:
+    name: Déploiement recette
+    needs: image
+    if: github.ref_type == 'branch'
+    runs-on: ubuntu-24.04
+    # Les secrets de connexion ne sont donnés qu'aux branches autorisées par l'environnement
+    environment: staging
+    permissions: {}
+    steps:
+      - name: Déploiement sur le serveur
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          (umask 077 && printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy)
+          # La clé n'autorise côté serveur que le script de déploiement : seuls le composant et le commit sont transmis
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "deploy@$SSH_HOST" api "$GITHUB_SHA"

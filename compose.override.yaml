@@ -3,10 +3,9 @@ name: dramatoons_api_dev
 services:
   php:
     build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile
       target: dev
-    depends_on:
-      mariadb:
-        condition: service_healthy
     user: "1000:1000"
     environment:
       - XDEBUG_CONFIG=client_host=host.docker.internal client_port=9003

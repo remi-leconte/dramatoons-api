@@ -1,9 +1,10 @@
 services:
   php:
-    build:
-      context: .
-      dockerfile: ./docker/php/Dockerfile
     restart: unless-stopped
+    # L'entrypoint applique les migrations au démarrage : la base doit déjà accepter les connexions
+    depends_on:
+      mariadb:
+        condition: service_healthy
     environment:
       REDIS_URL: redis://redis:6379
     networks:
