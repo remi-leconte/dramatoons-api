@@ -12,14 +12,16 @@ permissions:
   contents: read
   packages: write
 
-# Deux fusions rapprochées : seule la dernière doit écrire l'étiquette release-vX.Y.Z
+# Deux fusions rapprochées : les publications passent l'une après l'autre, dans l'ordre, pour que
+# release-vX.Y.Z soit écrite en dernier par le dernier commit, sans annuler une publication en cours
 concurrency:
   group: publication-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   image:
-    name: Image prod
+    # Distinct du check « Image prod » de la CI, exigé par le ruleset
+    name: Publication image
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
