@@ -130,9 +130,11 @@ Sur `release/*`, le job « Déploiement recette » suit la publication :
 - Il tourne dans l'environnement GitHub `staging`, dont les secrets (`SSH_HOST`, `SSH_KNOWN_HOSTS`, `SSH_PRIVATE_KEY`) ne sont donnés qu'aux branches `release/*`.
 - Il se connecte au serveur avec une clé dédiée, limitée côté serveur à un script de déploiement (hors dépôt), et ne lui transmet que `api` et le commit. Le script télécharge `compose.yaml`, `compose.prod.yaml` et `docker/nginx/default.conf` de ce commit, récupère l'image `sha-<commit>`, redémarre la pile (les migrations passent au démarrage de `php`), vérifie que l'API répond, puis supprime les anciennes images.
 - Le serveur ne construit rien et n'a plus besoin du code : seuls `.env.local`, `config/jwt/` et les volumes y restent.
-- Revenir à une version précédente : relancer (« Re-run jobs ») le workflow d'un commit précédent de la release.
+- Revenir à une version précédente : dans GitHub, ouvrir le run « Publication » d'un commit précédent de la release et relancer **seulement** son job « Déploiement recette » (« Re-run this job ») : GitHub ne relance pas la publication dont il dépend, et l'image déjà publiée, celle qui a été recettée, est redéployée. « Re-run all jobs » reconstruirait l'image, qui pourrait différer, et déplacerait `release-vX.Y.Z` sur ce commit : à éviter.
 - Les journaux de GitHub Actions sont publics : le script n'y écrit ni configuration ni journaux des conteneurs.
-- La production n'est pas encore déployée par ce workflow.
+- Recette de `main` et production, pas encore automatisées. Le tag `vX.Y.Z` publie l'image `vX.Y.Z`, sans déploiement. Le serveur ne construit plus d'image : l'ancienne méthode (code à jour sur le serveur, puis `up -d --build`) ne fonctionne plus à partir de la v2.4.0.
+  - Recette de `main` : le script de déploiement accepte aussi un tag (`api vX.Y.Z` au lieu du commit), lancé à la main sur le serveur.
+  - Production : dans son dossier sur le serveur, sauvegarder la base (les migrations passent au démarrage de `php`), récupérer `compose.yaml`, `compose.prod.yaml` et `docker/nginx/default.conf` du tag `vX.Y.Z`, écrire `IMAGE_TAG=vX.Y.Z` dans `.env.image`, puis `docker compose --env-file .env.local --env-file .env.image pull` et `… up -d`.
 
 ## Git
 Workflow (branches, PR, tickets, releases) : skill `workflow-github`. `.env.local` et `config/jwt/*.pem` ne sont pas versionnés.
