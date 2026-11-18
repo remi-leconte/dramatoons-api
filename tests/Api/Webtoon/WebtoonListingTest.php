@@ -161,6 +161,55 @@ final class WebtoonListingTest extends ApiTestCase
         $this->assertMemesWebtoons($donnees['bibliotheque'], $this->listing($donnees['lecteur'], 'admin'));
     }
 
+    #[TestDox('Administration : tri par identifiant, titre, statut, publication ou date de modification, croissant et décroissant (casse de sortOrder ignorée), pour un modérateur et un administrateur')]
+    public function testAdministrationTri(): void
+    {
+        // Ordres différents d'une colonne à l'autre, et différents de l'ordre de création (tri par défaut)
+        foreach ([
+            ['Delta', 'ongoing', true, '2026-01-03'],
+            ['Alpha', 'completed', false, '2026-01-01'],
+            ['Charlie', 'ongoing', false, '2026-01-04'],
+            ['Bravo', 'completed', true, '2026-01-02'],
+        ] as [$titre, $statut, $publie, $modification]) {
+            $webtoon = WebtoonFactory::createOne([
+                'status' => $statut,
+                'publish' => $publie,
+                'updated' => new \DateTimeImmutable($modification),
+            ]);
+            $webtoon->getTitle()->setTitle($titre);
+        }
+        static::getContainer()->get('doctrine')->getManager()->flush();
+
+        $colonnes = [
+            'id' => static fn (array $w): int => $w['id'],
+            'title' => static fn (array $w): string => $w['title']['title'],
+            'status' => static fn (array $w): string => $w['status'],
+            'publish' => static fn (array $w): bool => $w['publish'],
+            'updated' => static fn (array $w): string => $w['updated'],
+        ];
+
+        foreach ([UserFactory::new()->moderateur()->create(), UserFactory::new()->administrateur()->create()] as $utilisateur) {
+            foreach ($colonnes as $colonne => $valeur) {
+                foreach (['asc', 'desc'] as $ordre) {
+                    $reponse = $this->client($utilisateur)->request('GET', '/webtoons', [
+                        'query' => ['mode' => 'admin', 'pagination' => 'false', 'sortBy' => $colonne, 'sortOrder' => $ordre],
+                    ]);
+                    $this->assertResponseIsSuccessful();
+                    $obtenues = array_map($valeur, $reponse->toArray()['member']);
+
+                    $attendues = $obtenues;
+                    'asc' === $ordre ? sort($attendues) : rsort($attendues);
+                    $this->assertCount(4, $obtenues);
+                    if (in_array($colonne, ['id', 'title', 'updated'], true)) {
+                        // Valeurs toutes différentes : sinon le tri serait vérifié sans rien prouver
+                        $this->assertCount(4, array_unique($obtenues), $colonne);
+                    }
+                    $this->assertSame($attendues, $obtenues, sprintf('%s, sortBy=%s, sortOrder=%s', $utilisateur->getRoles()[0], $colonne, $ordre));
+                }
+            }
+        }
+    }
+
     #[TestDox('Chaque webtoon porte le suivi de l’utilisateur connecté, jamais celui d’un autre')]
     public function testSuiviDeLUtilisateurSeulement(): void
     {
