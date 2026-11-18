@@ -1,13 +1,11 @@
 name: Publication
 
 # Après la CI de la PR : publie l'image prod, celle que la recette puis la prod utiliseront telle quelle,
-# puis déploie la recette (branches release/* seulement)
+# puis déploie la recette. La version vX.Y.Z est livrée par livraison.yml, sans reconstruire l'image
 on:
   push:
     branches:
       - 'release/*'
-    tags:
-      - 'v*'
 
 permissions: {}
 
@@ -43,8 +41,7 @@ jobs:
           flavor: latest=false
           tags: |
             type=ref,event=branch
-            type=sha,enable=${{ github.ref_type == 'branch' }}
-            type=ref,event=tag
+            type=sha
 
       - uses: docker/build-push-action@v7
         with:
@@ -61,7 +58,6 @@ jobs:
   recette:
     name: Déploiement recette
     needs: image
-    if: github.ref_type == 'branch'
     runs-on: ubuntu-24.04
     # Les secrets de connexion ne sont donnés qu'aux branches autorisées par l'environnement
     environment: staging
