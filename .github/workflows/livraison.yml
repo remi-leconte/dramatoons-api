@@ -9,6 +9,8 @@ on:
 
 permissions: {}
 
+# Livraisons l'une après l'autre. Un run qui attend l'approbation de la production bloque le suivant :
+# rejeter ce déploiement si la dernière vérification de la recette échoue
 concurrency:
   group: livraison
   cancel-in-progress: false

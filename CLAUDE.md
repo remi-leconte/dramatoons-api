@@ -123,7 +123,7 @@ Le job « Vérifications » n'a pas de base de données : Symfony y lit le `.env
 - Déclenché par un `push` sur `release/*` (donc la fusion d'une PR), jamais par une PR : seul ce qui est déjà passé par la CI est publié.
 - Étiquettes : `release-vX.Y.Z` (dernière fusion dans la release) et `sha-<commit>`. Pas de `latest`. L'étiquette `vX.Y.Z` est ajoutée à la livraison, sans reconstruire l'image (voir « Livraison »).
 - Job « Publication image », distinct du check « Image prod » de la CI. Les publications d'une même branche passent l'une après l'autre, sans annulation ; seule exception de GitHub : sur trois fusions très rapprochées, celle du milieu, encore en attente, est remplacée et son `sha-<commit>` n'est pas publié.
-- Droits : aucun par défaut (`permissions: {}`). Le job « Publication image » n'a que le `GITHUB_TOKEN`, limité à `contents: read` et `packages: write`, et aucun secret ; les secrets SSH ne servent qu'au job « Déploiement recette » (ci-dessous).
+- Droits : aucun par défaut (`permissions: {}`). Le job « Publication image » n'a que le `GITHUB_TOKEN`, limité à `contents: read` et `packages: write`, et aucun secret ; dans ce workflow, les secrets SSH ne servent qu'au job « Déploiement recette » (ci-dessous).
 - `.dockerignore` exclut de l'image ce qui ne sert pas en production : tests, outillage de développement, `CLAUDE.md`.
 
 Sur `release/*`, le job « Déploiement recette » suit la publication :
@@ -144,6 +144,8 @@ Sur `release/*`, le job « Déploiement recette » suit la publication :
 3. **Déploiement recette** : déploie `vX.Y.Z` en recette (environnement `staging`, qui autorise `release/*` et `main`), pour une dernière vérification.
 4. **Déploiement production** : attend l'approbation de l'utilisateur, puis déploie `vX.Y.Z`. L'environnement GitHub `production` exige cette approbation, sans contournement par un administrateur, et ne donne ses secrets qu'à `main`. Sa clé SSH est distincte de celle de la recette : le serveur la limite au déploiement de la production, qui n'accepte qu'une version `vX.Y.Z`. Avant de démarrer la nouvelle version, le script sauvegarde la base sur le serveur et ne déploie rien si la sauvegarde échoue.
 
+- Droits : aucun par défaut (`permissions: {}`). « Release fusionnée » a `contents: read` et `pull-requests: read` ; « Version », `contents: write` (tag) et `packages: write` (étiquette de l'image) ; les deux déploiements n'ont aucun droit, seulement les secrets SSH de leur environnement.
+- Les livraisons passent l'une après l'autre (groupe de concurrence `livraison`) : tant que son déploiement en production attend l'approbation, un run bloque la livraison suivante, et une nouvelle fusion dans `main` remplacerait celle qui attend. Si la dernière vérification de la recette échoue, **rejeter** le job « Déploiement production » (« Reject »), puis corriger par un hotfix.
 - Approuver la production de l'API avant celle du front : le nouveau front peut appeler des points d'entrée que seule la nouvelle API connaît.
 - Revenir à la version précédente en production :
   - dans le run « Livraison » de la version précédente, relancer **seulement** le job « Déploiement production » (« Re-run this job », dans les 30 jours, avec une nouvelle approbation), ou lancer à la main sur le serveur le script de déploiement avec le `vX.Y.Z` de cette version ;
