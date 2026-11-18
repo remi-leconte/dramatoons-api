@@ -103,6 +103,9 @@ final class WebtoonRepository extends ServiceEntityRepository
                                 ->orderBy('user_rate', $params['sortOrder']),
             default => $qb->orderBy('w.created', $params['sortOrder']),
         };
+        // Départage les égalités (statut, publication…) : sans ordre total, MariaDB peut ranger
+        // différemment les ex aequo d'une page à l'autre, et la pagination répéter ou omettre un webtoon
+        $qb->addOrderBy('w.id', $params['sortOrder']);
 
         $countQb = clone $qb;
         $totalItems = (int) $countQb->select('COUNT(DISTINCT w.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();

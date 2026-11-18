@@ -161,7 +161,7 @@ final class WebtoonListingTest extends ApiTestCase
         $this->assertMemesWebtoons($donnees['bibliotheque'], $this->listing($donnees['lecteur'], 'admin'));
     }
 
-    #[TestDox('Administration : tri par identifiant, titre, statut, publication ou date de modification, croissant et décroissant (casse de sortOrder ignorée), pour un modérateur et un administrateur')]
+    #[TestDox('Administration : tri par identifiant, titre, statut, publication ou date de modification, croissant et décroissant (sortOrder en minuscules ou en majuscules), pour un modérateur et un administrateur')]
     public function testAdministrationTri(): void
     {
         // Ordres différents d'une colonne à l'autre, et différents de l'ordre de création (tri par défaut)
@@ -190,7 +190,7 @@ final class WebtoonListingTest extends ApiTestCase
 
         foreach ([UserFactory::new()->moderateur()->create(), UserFactory::new()->administrateur()->create()] as $utilisateur) {
             foreach ($colonnes as $colonne => $valeur) {
-                foreach (['asc', 'desc'] as $ordre) {
+                foreach (['asc', 'desc', 'ASC', 'DESC'] as $ordre) {
                     $reponse = $this->client($utilisateur)->request('GET', '/webtoons', [
                         'query' => ['mode' => 'admin', 'pagination' => 'false', 'sortBy' => $colonne, 'sortOrder' => $ordre],
                     ]);
@@ -198,7 +198,7 @@ final class WebtoonListingTest extends ApiTestCase
                     $obtenues = array_map($valeur, $reponse->toArray()['member']);
 
                     $attendues = $obtenues;
-                    'asc' === $ordre ? sort($attendues) : rsort($attendues);
+                    'ASC' === strtoupper($ordre) ? sort($attendues) : rsort($attendues);
                     $this->assertCount(4, $obtenues);
                     if (in_array($colonne, ['id', 'title', 'updated'], true)) {
                         // Valeurs toutes différentes : sinon le tri serait vérifié sans rien prouver
@@ -207,6 +207,33 @@ final class WebtoonListingTest extends ApiTestCase
                     $this->assertSame($attendues, $obtenues, sprintf('%s, sortBy=%s, sortOrder=%s', $utilisateur->getRoles()[0], $colonne, $ordre));
                 }
             }
+        }
+    }
+
+    #[TestDox('Administration : trié sur une colonne à valeurs égales (publication, statut), les pages se suivent sans répéter ni omettre de webtoon, les ex aequo étant rangés par identifiant')]
+    public function testAdministrationTriPagine(): void
+    {
+        $ids = [];
+        for ($i = 0; $i < 6; ++$i) {
+            $ids[] = WebtoonFactory::createOne(['status' => 'ongoing', 'publish' => false])->getId();
+        }
+        // Ex aequo rangés par identifiant dans le sens du tri : décroissant ici, l'inverse de l'ordre de création
+        rsort($ids);
+        $moderateur = UserFactory::new()->moderateur()->create();
+
+        foreach (['publish', 'status'] as $colonne) {
+            $obtenus = [];
+            foreach ([1, 2, 3] as $page) {
+                $reponse = $this->client($moderateur)->request('GET', '/webtoons', [
+                    'query' => ['mode' => 'admin', 'itemsPerPage' => '2', 'page' => (string) $page, 'sortBy' => $colonne, 'sortOrder' => 'desc'],
+                ]);
+                $this->assertResponseIsSuccessful();
+                foreach ($reponse->toArray()['member'] as $webtoon) {
+                    $obtenus[] = $webtoon['id'];
+                }
+            }
+
+            $this->assertSame($ids, $obtenus, $colonne);
         }
     }
 
