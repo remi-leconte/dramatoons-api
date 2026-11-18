@@ -146,6 +146,7 @@ Sur `release/*`, le job « Déploiement recette » suit la publication :
 
 - Droits : aucun par défaut (`permissions: {}`). « Release fusionnée » a `contents: read` et `pull-requests: read` ; « Version », `contents: write` (tag) et `packages: write` (étiquette de l'image) ; les deux déploiements n'ont aucun droit, seulement les secrets SSH de leur environnement.
 - Les livraisons passent l'une après l'autre (groupe de concurrence `livraison`) : tant que son déploiement en production attend l'approbation, un run bloque la livraison suivante, et une nouvelle fusion dans `main` remplacerait celle qui attend. Si la dernière vérification de la recette échoue, **rejeter** le job « Déploiement production » (« Reject »), puis corriger par un hotfix.
+- Tant que le déploiement en production attend l'approbation, ne rien fusionner dans une branche `release/*` (ni ticket, ni `main` après un hotfix) : `publish.yml` redéploierait la recette par-dessus `vX.Y.Z`, et la dernière vérification porterait sur un autre code.
 - Approuver la production de l'API avant celle du front : le nouveau front peut appeler des points d'entrée que seule la nouvelle API connaît.
 - Revenir à la version précédente en production :
   - dans le run « Livraison » de la version précédente, relancer **seulement** le job « Déploiement production » (« Re-run this job », dans les 30 jours, avec une nouvelle approbation), ou lancer à la main sur le serveur le script de déploiement avec le `vX.Y.Z` de cette version ;
