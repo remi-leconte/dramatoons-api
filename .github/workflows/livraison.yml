@@ -32,7 +32,7 @@ jobs:
             --jq "[.[] | select(.merge_commit_sha == \"$GITHUB_SHA\")][0] // {} | \"\(.head.ref // \"\") \(.head.sha // \"\")\"")
           read -r branche commit <<<"$pr"
           version=${branche#release/}
-          # Un hotfix ou une autre fusion dans main se livre à la main
+          # Seule la fusion d'une release, hotfix compris (il passe par sa propre release), a une image recettée à livrer
           if [[ $branche != release/* ]] || ! [[ $version =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::notice::Pas une fusion de release/vX.Y.Z : rien n'est livré"
             exit 0
