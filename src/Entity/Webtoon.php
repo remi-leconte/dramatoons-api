@@ -10,9 +10,6 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\ApiFilter;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
-use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use App\Repository\WebtoonRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -55,18 +52,6 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
             securityMessage: "Impossible de supprimer ce webtoon.")
     ]
 )]
-#[ApiFilter(SearchFilter::class, properties: [
-    'id' => 'exact',
-    'title.title' => 'partial',
-    'status' => 'partial',
-    'publish' => 'partial'
-])]
-#[ApiFilter(OrderFilter::class, properties: [
-    'id',
-    'status',
-    'publish',
-    'updated'
-])]
 final class Webtoon
 {
     #[ORM\Id]

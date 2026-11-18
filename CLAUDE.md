@@ -89,7 +89,7 @@ Conventions de Symfony et de Docker Compose :
   - `status[]` et `exclude_status[]` : `state` du suivi ;
   - `statusWebtoon` (`completed` ou `ongoing`, sinon ignoré) : statut du webtoon, dans tous les modes (le front ne l'envoie pas) ;
   - en mode admin uniquement : `id`, `publish=false`.
-- **Tri** : `sortBy` = `added` (défaut, date de création), `title`, `rating`, `user_rating`, `id`, `status`, `publish`, `updated`. Ordre par `sortOrder` : `ASC` ou `DESC` (casse ignorée), `DESC` par défaut et pour toute autre valeur.
+- **Tri** (les filtres standard d'API Platform, comme `order[…]`, ne sont pas déclarés sur `Webtoon` : `WebtoonProvider` les ignorerait) : `sortBy` = `added` (défaut, date de création), `title`, `rating`, `user_rating`, `id`, `status`, `publish`, `updated`. Ordre par `sortOrder` : `ASC` ou `DESC` (casse ignorée), `DESC` par défaut et pour toute autre valeur. Les ex aequo sont rangés par `id`, dans le même sens, pour que la pagination ne répète ni n'omette un webtoon.
 - **Pagination** : `page`, `itemsPerPage` (20 par défaut), `pagination=false`.
 - **Réponse** : chaque webtoon porte `userProgress`, le WebtoonUser de l'utilisateur courant.
 - **Cache Redis à tags** : seuls les ids et le total, pendant 10 jours. Tags `webtoons_list` (toute écriture sur Webtoon ou WebtoonTitle) et `user_{id}` (écriture d'un suivi).
