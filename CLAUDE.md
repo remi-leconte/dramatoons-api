@@ -145,7 +145,10 @@ Sur `release/*`, le job « Déploiement recette » suit la publication :
 4. **Déploiement production** : attend l'approbation de l'utilisateur, puis déploie `vX.Y.Z`. L'environnement GitHub `production` exige cette approbation, sans contournement par un administrateur, et ne donne ses secrets qu'à `main`. Sa clé SSH est distincte de celle de la recette : le serveur la limite au déploiement de la production, qui n'accepte qu'une version `vX.Y.Z`. Avant de démarrer la nouvelle version, le script sauvegarde la base sur le serveur et ne déploie rien si la sauvegarde échoue.
 
 - Approuver la production de l'API avant celle du front : le nouveau front peut appeler des points d'entrée que seule la nouvelle API connaît.
-- Revenir à la version précédente en production : dans le run « Livraison » de cette version, relancer **seulement** le job « Déploiement production » (« Re-run this job », dans les 30 jours, avec une nouvelle approbation), ou lancer à la main sur le serveur le script de déploiement avec `vX.Y.Z`. Les migrations ne sont pas défaites (voir le retour arrière de la recette) ; si des données sont abîmées, restaurer la sauvegarde faite avant le déploiement.
+- Revenir à la version précédente en production :
+  - dans le run « Livraison » de la version précédente, relancer **seulement** le job « Déploiement production » (« Re-run this job », dans les 30 jours, avec une nouvelle approbation), ou lancer à la main sur le serveur le script de déploiement avec le `vX.Y.Z` de cette version ;
+  - seules les versions livrées par ce workflow (à partir de la v2.4.0) se redéploient ainsi : les plus anciennes n'ont ni `compose.prod.yaml` qui utilise une image publiée, ni run « Livraison ». Pour revenir avant la v2.4.0, relancer l'ancienne production, qui se construit dans un autre dossier du serveur contenant le code (procédure hors dépôt). Ce dossier y reste jusqu'au retrait de git du serveur.
+  - Les migrations ne sont pas défaites (voir le retour arrière de la recette). Pour revenir avant une migration irréversible, ou avant la v2.4.0 (sa migration supprime la colonne `slug`), ou si des données sont abîmées, restaurer la sauvegarde de la base faite par le script juste avant le déploiement.
 
 ## Git
 Workflow (branches, PR, tickets, releases) : skill `workflow-github`. `.env.local` et `config/jwt/*.pem` ne sont pas versionnés.
