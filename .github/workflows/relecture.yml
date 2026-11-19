@@ -1,0 +1,245 @@
+name: Relecture
+
+# Relecture IA de chaque PR vers une release : un check rouge à la moindre remarque, publiée en commentaire.
+# La relecture ne fusionne rien (fusion des PR d'un ticket : skill workflow-github)
+on:
+  pull_request:
+    branches:
+      - 'release/*'
+    # Pas `edited` : chaque modification du titre lancerait un run, et un job sauté remplacerait un verdict rouge par
+    # un check réussi. Une PR ne change donc jamais de cible : on la ferme et on en ouvre une nouvelle
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions: {}
+
+# Un nouveau push rend la relecture en cours inutile : l'annuler économise le quota de l'abonnement
+concurrency:
+  group: relecture-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  relecture:
+    name: Relecture IA
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # Lecture seule : le commentaire est publié par le job suivant, hors de portée de Claude
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    outputs:
+      verdict: ${{ steps.verdict.outputs.verdict }}
+      commentaire: ${{ steps.verdict.outputs.commentaire }}
+    steps:
+      # Le jeton d'abonnement ne sert qu'aux PR de l'utilisateur. Pour toute autre PR, le check est rouge :
+      # sauté, il compterait comme réussi et laisserait fusionner une PR que personne n'a relue
+      - id: perimetre
+        name: Périmètre
+        env:
+          AUTEUR: ${{ github.event.pull_request.user.login }}
+          DEPOT_SOURCE: ${{ github.event.pull_request.head.repo.full_name }}
+          BRANCHE: ${{ github.event.pull_request.head.ref }}
+          BROUILLON: ${{ github.event.pull_request.draft }}
+        run: |
+          # Un brouillon n'est pas relu, mais son check doit rester rouge jusqu'à la relecture qui suit « Ready for review »
+          if [[ $BROUILLON == true ]]; then
+            echo "::error::Brouillon : pas encore relu"
+            exit 1
+          fi
+          if [[ $AUTEUR != remi-leconte || $DEPOT_SOURCE != "$GITHUB_REPOSITORY" ]]; then
+            echo "::error::PR de $AUTEUR depuis $DEPOT_SOURCE : pas de relecture IA, à relire à la main"
+            exit 1
+          fi
+          # Fusion de main dans une release (après un hotfix ou une livraison) : ce code a déjà été relu et livré
+          if [[ $BRANCHE == main ]]; then
+            echo "::notice::Synchronisation de main : déjà relu, pas de relecture IA"
+            echo "mode=synchronisation" >>"$GITHUB_OUTPUT"
+          else
+            echo "mode=relecture" >>"$GITHUB_OUTPUT"
+          fi
+
+      # Épinglées sur un commit, comme l'action Claude : elles tournent dans le job qui reçoit le jeton de l'abonnement
+      - if: steps.perimetre.outputs.mode == 'relecture'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # _relecture/ et _workspace/ sont écrits par ce job : versionnés par la PR, ils y glisseraient un faux contexte
+      - name: Dossiers réservés
+        if: steps.perimetre.outputs.mode == 'relecture'
+        run: |
+          for dossier in _relecture _workspace; do
+            if [[ -e $dossier ]]; then
+              echo "::error::La PR versionne $dossier/, réservé à la relecture : à retirer de la PR"
+              exit 1
+            fi
+          done
+
+      - if: steps.perimetre.outputs.mode == 'relecture'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: remi-leconte/dramatoons-workspace
+          path: _workspace
+          persist-credentials: false
+
+      # Le contexte est rassemblé avant Claude, qui n'a ensuite besoin d'aucun accès à GitHub
+      - name: Contexte de la PR
+        if: steps.perimetre.outputs.mode == 'relecture'
+        # Explicite : GitHub ajoute alors pipefail, sans quoi l'échec d'une lecture dans un pipeline passerait inaperçu
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+          BRANCHE: ${{ github.event.pull_request.head.ref }}
+        run: |
+          dossier=_relecture
+          mkdir -p "$dossier"
+          proprietaire=${GITHUB_REPOSITORY%/*}
+          gh pr view "$PR" -R "$GITHUB_REPOSITORY" \
+            --json number,title,body,baseRefName,headRefName,mergeable,files,commits >"$dossier/pr.json"
+          gh pr diff "$PR" -R "$GITHUB_REPOSITORY" >"$dossier/pr.diff"
+          # L'action remet le CLAUDE.md de la branche cible avant de lancer Claude : celui de la PR se lit ici
+          [[ -f CLAUDE.md ]] && cp CLAUDE.md "$dossier/CLAUDE.pr.md"
+
+          if ! [[ $BRANCHE =~ ^[a-z]+/#([0-9]+)- ]]; then
+            echo "Branche hors convention : pas de ticket à rassembler" >"$dossier/tickets.txt"
+            exit 0
+          fi
+          requete='query($o:String!,$d:String!,$n:Int!){repository(owner:$o,name:$d){issue(number:$n){
+            number title body repository{name}
+            parent{number repository{name}}
+            subIssues(first:20){nodes{number repository{name}}}}}}'
+          # Un ticket introuvable (seule erreur NOT_FOUND) est une erreur de la branche, à signaler par la relecture.
+          # Toute autre erreur est une panne : l'étape échoue, et le check avec, sans verdict
+          ticket() {
+            local reponse
+            if reponse=$(gh api graphql -f query="$requete" -f o="$proprietaire" -f d="$1" -F n="$2" 2>/dev/null); then
+              jq -c .data.repository.issue <<<"$reponse"
+            elif jq -e '[.errors[]?.type] | length > 0 and all(. == "NOT_FOUND")' <<<"$reponse" >/dev/null 2>&1; then
+              echo null
+            else
+              echo "::error::Lecture du ticket #$2 de $1 impossible" >&2
+              return 1
+            fi
+          }
+
+          # Le ticket principal et ses sous-tickets : les PR d'un même ticket se relisent ensemble
+          numero=${BASH_REMATCH[1]}
+          courant=$(ticket "${GITHUB_REPOSITORY#*/}" "$numero")
+          if [[ $courant == null ]]; then
+            echo "Ticket #$numero introuvable dans ${GITHUB_REPOSITORY#*/} : branche hors convention" >"$dossier/tickets.txt"
+            exit 0
+          fi
+          if [[ $(jq -r '.parent // empty' <<<"$courant") ]]; then
+            principal=$(ticket "$(jq -r .parent.repository.name <<<"$courant")" "$(jq -r .parent.number <<<"$courant")")
+            if [[ $principal == null ]]; then
+              echo "Ticket principal du #$numero introuvable" >"$dossier/tickets.txt"
+              exit 0
+            fi
+          else
+            principal=$courant
+          fi
+          {
+            echo "$principal"
+            jq -r '.subIssues.nodes[] | "\(.repository.name) \(.number)"' <<<"$principal" |
+              while read -r depot numero; do
+                sous_ticket=$(ticket "$depot" "$numero")
+                if [[ $sous_ticket == null ]]; then
+                  echo "$depot : sous-ticket #$numero introuvable" >>"$dossier/pr-liees-manquantes.txt"
+                else
+                  echo "$sous_ticket"
+                fi
+              done
+          } | jq -s . >"$dossier/tickets.json"
+
+          # Les PR ouvertes des autres dépôts pour ces tickets, vers la même release
+          jq -r '.[] | "\(.repository.name) \(.number)"' "$dossier/tickets.json" |
+            while read -r depot numero; do
+              [[ $depot == "${GITHUB_REPOSITORY#*/}" ]] && continue
+              # Mêmes critères que le périmètre : une PR d'un fork ou d'un autre auteur n'est jamais lue comme PR liée
+              autre=$(gh pr list -R "$proprietaire/$depot" --base "$BASE" --state open \
+                --json number,headRefName,isCrossRepository,author \
+                --jq "[.[] | select(.headRefName | test(\"^[a-z]+/#$numero-\"))
+                  | select(.isCrossRepository == false and .author.login == \"remi-leconte\") | .number] | join(\" \")")
+              if [[ $autre == *" "* ]]; then
+                echo "$depot : plusieurs PR ouvertes vers $BASE pour le ticket #$numero ($autre)" >>"$dossier/pr-liees-ambigues.txt"
+                continue
+              fi
+              if [[ -z $autre ]]; then
+                echo "$depot : aucune PR ouverte vers $BASE pour le ticket #$numero" >>"$dossier/pr-liees-manquantes.txt"
+                continue
+              fi
+              gh pr view "$autre" -R "$proprietaire/$depot" \
+                --json number,title,body,baseRefName,headRefName,files,commits >"$dossier/$depot-$autre.json"
+              gh pr diff "$autre" -R "$proprietaire/$depot" >"$dossier/$depot-$autre.diff"
+            done
+          ls -l "$dossier"
+
+      # Épinglée sur un commit : l'action reçoit le jeton de l'abonnement, une étiquette déplacée lui donnerait un autre code
+      - id: claude
+        if: steps.perimetre.outputs.mode == 'relecture'
+        uses: anthropics/claude-code-action@f431adaf77e0fecf918431e75a2b5b45b85af002 # v1.0.283
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Sans jeton fourni, l'action en demande un à son application GitHub (OIDC) : celui du job suffit, en lecture seule
+          github_token: ${{ github.token }}
+          prompt: |
+            Tu relis la PR #${{ github.event.pull_request.number }} du dépôt ${{ github.repository }}.
+            Lis d'abord `_workspace/relecture/consignes.md` et applique-les à la lettre.
+            Le contexte de la PR est dans `_relecture/`.
+          # Le contenu relu vient de la PR : il ne doit pouvoir lancer ni sous-agent ni action.
+          # --setting-sources user : la configuration du dépôt relu (CLAUDE.md, .claude/, .mcp.json) n'est pas chargée,
+          # elle ne se lit que comme une donnée. --tools fixe les seuls outils disponibles. Sans --allowedTools, une lecture
+          # hors du dossier de travail demande une permission, refusée faute de quelqu'un pour l'accorder : le relecteur
+          # ne lit ni le reste du runner ni ses secrets
+          claude_args: >-
+            --model claude-opus-5-5
+            --max-turns 80
+            --setting-sources user
+            --tools "Read,Glob,Grep"
+            --disallowedTools "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch"
+            --json-schema '{"type":"object","required":["verdict","resume","remarques"],"properties":{"verdict":{"enum":["VALIDÉE","BLOQUÉE"]},"resume":{"type":"string"},"remarques":{"type":"array","items":{"type":"object","required":["pr","emplacement","probleme","correction"],"properties":{"pr":{"type":"string"},"emplacement":{"type":"string"},"probleme":{"type":"string"},"correction":{"type":"string"}}}}}}'
+
+      - id: verdict
+        name: Verdict
+        if: steps.perimetre.outputs.mode == 'relecture'
+        env:
+          RESULTAT: ${{ steps.claude.outputs.structured_output }}
+        run: |
+          verdict=$(jq -r .verdict <<<"$RESULTAT")
+          {
+            echo "## Relecture IA : $verdict"
+            echo
+            jq -r .resume <<<"$RESULTAT"
+            jq -r '.remarques | to_entries[] |
+              "\n### \(.key + 1). \(.value.pr) : \(.value.emplacement)\n\n**Problème** : \(.value.probleme)\n\n**Correction** : \(.value.correction)"' <<<"$RESULTAT"
+          } >"$RUNNER_TEMP/commentaire.md"
+          cat "$RUNNER_TEMP/commentaire.md" >>"$GITHUB_STEP_SUMMARY"
+          # Passé au job suivant par une sortie plutôt qu'un artifact, dont le nom entrerait en conflit à la relance du run
+          fin=$(openssl rand -hex 16)
+          {
+            echo "verdict=$verdict"
+            echo "commentaire<<$fin"
+            cat "$RUNNER_TEMP/commentaire.md"
+            echo "$fin"
+          } >>"$GITHUB_OUTPUT"
+          # Toute remarque bloque la fusion, même de style
+          if [[ $verdict != "VALIDÉE" || $(jq '.remarques | length' <<<"$RESULTAT") != 0 ]]; then
+            echo "::error::Relecture bloquée : voir le commentaire de la PR"
+            exit 1
+          fi
+
+  commentaire:
+    name: Commentaire de la relecture
+    needs: relecture
+    if: always() && needs.relecture.outputs.verdict != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          COMMENTAIRE: ${{ needs.relecture.outputs.commentaire }}
+        run: printf '%s\n' "$COMMENTAIRE" | gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body-file -
