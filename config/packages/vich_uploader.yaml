@@ -4,6 +4,12 @@ vich_uploader:
         webtoon_covers:
             uri_prefix: /upload/cover
             upload_destination: '%kernel.project_dir%/public/upload/cover'
-            namer: App\Naming\WebtoonCoverNamer 
+            namer: Vich\UploaderBundle\Naming\UniqidNamer # Nom unique à chaque envoi : pas de collision entre webtoons, et le navigateur ne garde pas l'ancienne image en cache
             delete_on_update: true # Supprime l'ancienne image du disque dur lors d'un changement
             delete_on_remove: true # Supprime l'image du disque si le webtoon est supprimé
+
+when@test:
+    vich_uploader:
+        mappings:
+            webtoon_covers:
+                upload_destination: '%kernel.project_dir%/var/test/upload/cover'

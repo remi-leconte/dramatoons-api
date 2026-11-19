@@ -3,6 +3,7 @@
 
 namespace App\Entity;
 
+use App\State\UserDeleteProcessor;
 use App\State\UserProcessor;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
@@ -31,8 +32,14 @@ use Symfony\Component\Security\Core\User\UserInterface;
     paginationClientItemsPerPage: true,
     paginationItemsPerPage: 20,
     operations: [
-        new GetCollection(normalizationContext: ['groups' => ['user:read']]),
-        new Get(normalizationContext: ['groups' => ['user:read']]),
+        new GetCollection(
+            normalizationContext: ['groups' => ['user:read']],
+            security: "is_granted('ROLE_ADMIN')"
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['user:read']],
+            security: "is_granted('ROLE_USER')"
+        ),
         new Post(
             denormalizationContext: ['groups' => ['user:write']],
             normalizationContext: ['groups' => ['user:read']],
@@ -47,7 +54,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
         ),
         new Delete(
             security: "is_granted('ROLE_ADMIN') or object == user",
-            securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce compte peut le supprimer."
+            securityMessage: "Seul un administrateur ou l'utilisateur propriétaire de ce compte peut le supprimer.",
+            processor: UserDeleteProcessor::class
         )
     ]
 )]
@@ -66,6 +74,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
 ])]
 final class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    /** Compte qui reçoit les webtoons des comptes supprimés (créé par app:create-deleted-user). */
+    public const DELETED_USER_LOGIN = 'Utilisateur supprimé';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -75,20 +86,23 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 180)]
     #[Assert\NotBlank(message: "L'email est obligatoire.")]
     #[Assert\Email(message: "L'adresse email n'est pas valide.")]
-    #[Groups(['user:read:owner', 'user:write', 'user:patch:owner'])] 
+    #[Groups(['user:read:owner', 'user:write', 'user:patch:owner', 'user:patch:admin'])]
     private ?string $email = null;
 
     #[ORM\Column(type: 'json')]
-    #[Groups(['user:read', 'user:patch:admin'])]
+    #[Assert\Type(type: 'list', message: 'Les rôles doivent être une liste.')]
+    #[Assert\Count(exactly: 1, exactMessage: 'Un utilisateur a un seul rôle.')]
+    #[Assert\All([new Assert\NotNull(message: "Ce rôle n'existe pas."), new Assert\Choice(choices: ['ROLE_USER', 'ROLE_MODO', 'ROLE_ADMIN'], message: "Ce rôle n'existe pas.")])]
+    #[Groups(['user:read:owner', 'user:patch:admin'])]
     private ?array $roles = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank(message: "Le mot de passe est obligatoire.")]
-    #[Groups(['user:write','user:patch:owner'])] // Symfony sécurise déjà le fait de ne pouvoir modifier que le mot de passe de son propre compte
+    #[Groups(['user:write', 'user:patch:owner'])]
     private ?string $password = null;
 
     #[ORM\Column(length: 255, unique: true)]
-    #[Groups(['user:read', 'webtoon_user:read', 'user:write','user:patch:owner'])]
+    #[Groups(['user:read', 'webtoon_user:read', 'user:write', 'user:patch:owner', 'user:patch:admin'])]
     #[Assert\NotBlank(message: "Le login est obligatoire.")]
     private ?string $login = null;
 
@@ -97,7 +111,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?\DateTimeInterface $created = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read:owner'])]
     private ?\DateTimeInterface $updated = null;
 
     #[ORM\Column(name: 'resetTokenExpiration', type: 'datetime_immutable', nullable: true)]
@@ -107,11 +121,10 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $resetToken = null;
 
     #[ORM\Column(name: 'rememberToken', length: 64, nullable: true)]
-    #[Groups(['user:read:owner', 'user:write:owner'])]
     private ?string $rememberToken = null;
 
     #[ORM\Column(type: 'boolean', nullable: true, options: ['default' => true])]
-    #[Groups(['user:read:owner'])]
+    #[Groups(['user:read:owner', 'user:patch:admin'])]
     private ?bool $publish = true;
 
     #[ORM\Column(type: 'boolean', nullable: true, options: ['default' => false])]
@@ -119,7 +132,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?bool $verified = null;
 
     #[ORM\Column(name: 'lastLogin', type: 'datetime_immutable', nullable: true)]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read:owner'])]
     private ?\DateTimeInterface $lastLogin = null;
 
     /**
@@ -181,6 +194,18 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
         $roles[] = 'ROLE_USER';
 
         return array_unique($roles);
+    }
+
+    #[Groups(['user:read'])]
+    public function getRole(): string
+    {
+        $roles = $this->getRoles();
+
+        return match (true) {
+            in_array('ROLE_ADMIN', $roles, true) => 'ROLE_ADMIN',
+            in_array('ROLE_MODO', $roles, true) => 'ROLE_MODO',
+            default => 'ROLE_USER',
+        };
     }
 
     public function setRoles(array $roles): static

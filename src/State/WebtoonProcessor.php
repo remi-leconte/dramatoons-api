@@ -11,7 +11,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
- * @implements ProcessorInterface<Webtoon, void>
+ * @implements ProcessorInterface<Webtoon, Webtoon>
  */
 final class WebtoonProcessor implements ProcessorInterface
 {
@@ -27,24 +27,22 @@ final class WebtoonProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
-        if ($data instanceof Webtoon) {
-            $user = $this->security->getUser();
+        $user = $this->security->getUser();
 
-            if ($user instanceof User && $data->getCreator() === null) {
-                $data->setCreator($user);
+        if ($user instanceof User && $data->getCreator() === null) {
+            $data->setCreator($user);
+        }
+
+        if ($data->getTitle() instanceof WebtoonTitle) {
+            $webtoonTitle = $data->getTitle();
+
+            $webtoonTitle->setWebtoon($data);
+
+            if ($webtoonTitle->getId() === null) {
+                $data->addSecondaryTitle($webtoonTitle);
             }
 
-            if ($data->getTitle() instanceof WebtoonTitle) {
-                $webtoonTitle = $data->getTitle();
-
-                $webtoonTitle->setWebtoon($data);
-
-                if ($webtoonTitle->getId() === null) {
-                    $data->addSecondaryTitle($webtoonTitle);
-                }
-
-                $data->setTitle($webtoonTitle);
-            }
+            $data->setTitle($webtoonTitle);
         }
 
         return $this->persistProcessor->process($data, $operation, $uriVariables, $context);

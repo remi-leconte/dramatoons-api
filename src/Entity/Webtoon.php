@@ -10,17 +10,14 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\ApiFilter;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
-use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use App\Repository\WebtoonRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
-use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[ORM\Entity(repositoryClass: WebtoonRepository::class)]
@@ -31,34 +28,30 @@ use Vich\UploaderBundle\Mapping\Attribute as Vich;
         new GetCollection(
             normalizationContext: ['groups' => ['webtoon:read']],
             provider: WebtoonProvider::class),
-        new Get(normalizationContext: ['groups' => ['webtoon:read']]),
+        new Get(
+            normalizationContext: ['groups' => ['webtoon:read']],
+            security: "is_granted('WEBTOON_VIEW', object)"),
         new Post(
+            security: "is_granted('ROLE_USER')",
             denormalizationContext: ['groups' => ['webtoon:write']],
             normalizationContext: ['groups' => ['webtoon:read']],
+            // Un titre existant envoyé par IRI serait détaché de son webtoon par WebtoonProcessor
+            securityPostDenormalize: "null === object.getTitle() or null === object.getTitle().getId() or object === object.getTitle().getWebtoon()",
+            securityPostDenormalizeMessage: "Ce titre appartient à un autre webtoon.",
             processor: WebtoonProcessor::class),
         new Patch(denormalizationContext: ['groups' => ['webtoon:write']],
             normalizationContext: ['groups' => ['webtoon:read']],
-            security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.hasOtherInteractions())",
+            security: "is_granted('WEBTOON_EDIT', object)",
             securityMessage: "Impossible de modifier ce webtoon.",
+            securityPostDenormalize: "null === object.getTitle() or null === object.getTitle().getId() or object === object.getTitle().getWebtoon()",
+            securityPostDenormalizeMessage: "Ce titre appartient à un autre webtoon.",
             processor: WebtoonProcessor::class),
         new Delete(
             normalizationContext: ['groups' => ['webtoon:read']],
-            security: "is_granted('ROLE_MODO') or (object.getCreator() == user and not object.hasOtherInteractions())",
+            security: "is_granted('WEBTOON_EDIT', object)",
             securityMessage: "Impossible de supprimer ce webtoon.")
     ]
 )]
-#[ApiFilter(SearchFilter::class, properties: [
-    'id' => 'exact',
-    'title.title' => 'partial',
-    'status' => 'partial',
-    'publish' => 'partial'
-])]
-#[ApiFilter(OrderFilter::class, properties: [
-    'id',
-    'status',
-    'publish',
-    'updated'
-])]
 final class Webtoon
 {
     #[ORM\Id]
@@ -70,6 +63,8 @@ final class Webtoon
     #[ORM\OneToOne(cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(name: 'main_title_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     #[Groups(['webtoon:read', 'webtoon:write'])]
+    #[Assert\NotNull(message: 'Le titre est obligatoire.')]
+    #[Assert\Valid]
     private ?WebtoonTitle $title = null;
 
     /**
@@ -81,42 +76,38 @@ final class Webtoon
 
     #[ORM\ManyToOne(inversedBy: 'createdWebtoons')]
     #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
-    #[Groups(['webtoon:read', 'webtoon:write'])]
-    private ?User $creator = null; // tous
-
-    #[ORM\Column(length: 255)]
-    #[Groups(['webtoon:read', 'webtoon:write'])]
-    private ?string $slug = null; // tous
+    #[Groups(['webtoon:read'])]
+    private ?User $creator = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['webtoon:read', 'webtoon:write'])]
-    private ?string $status = null; // tous
+    private ?string $status = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
     #[Groups(['webtoon:read'])]
-    private ?\DateTimeInterface $created = null; // tous lecture
+    private ?\DateTimeInterface $created = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
     #[Groups(['webtoon:read'])]
-    private ?\DateTimeInterface $updated = null; // tous lecture
+    private ?\DateTimeInterface $updated = null;
 
     #[ORM\Column]
     #[Groups(['webtoon:read', 'webtoon:write:modo'])]
     private ?bool $publish = false;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['webtoon:read', 'webtoon:write'])]
-    private ?string $image = 'defaut.jpg'; // tous
+    #[Groups(['webtoon:read'])]
+    private ?string $image = 'defaut.jpg';
 
     #[Vich\UploadableField(mapping: 'webtoon_covers', fileNameProperty: 'image')]
     private ?File $imageFile = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    private ?string $comment = null; // ignore
+    private ?string $comment = null; // pas encore utilisé
 
     #[ORM\Column(name: 'lastVerification', type: Types::DATE_MUTABLE, nullable: true)]
     #[Groups(['webtoon:read'])]
-    private ?\DateTimeInterface $lastVerification = null; // tous lecture
+    private ?\DateTimeInterface $lastVerification = null;
 
     #[ORM\Column(type: 'float', nullable: true)]
     #[Groups(['webtoon:read'])]
@@ -156,9 +147,6 @@ final class Webtoon
     public function setTitle(?WebtoonTitle $title): static
     {
         $this->title = $title;
-        if ($title !== null && $title->getTitle() !== null) {
-            $this->slug = (new AsciiSlugger())->slug($title->getTitle())->lower()->toString();
-        }
 
         return $this;
     }
@@ -208,11 +196,6 @@ final class Webtoon
         $this->creator = $creator;
 
         return $this;
-    }
-
-    public function getSlug(): ?string
-    {
-        return $this->slug;
     }
 
     public function getStatus(): ?string
@@ -365,7 +348,6 @@ final class Webtoon
     public function removeReader(WebtoonUser $reader): static
     {
         if ($this->readers->removeElement($reader)) {
-            // set the owning side to null (unless already changed)
             if ($reader->getWebtoon() === $this) {
                 $reader->setWebtoon(null);
             }
@@ -385,10 +367,25 @@ final class Webtoon
         return $this;
     }
 
-    public function hasOtherInteractions(): bool
+    /**
+     * Vrai si au moins un utilisateur autre que le créateur suit le webtoon :
+     * un webtoonUser dont rate, state ou bookmark est renseigné.
+     */
+    public function isFollowedByOtherThanCreator(): bool
     {
         foreach ($this->readers as $reader) {
-            if ($reader->getReader() !== $this->creator) {
+            if ($reader->getReader() !== $this->creator && $reader->isFollowing()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isFollowedBy(User $user): bool
+    {
+        foreach ($this->readers as $reader) {
+            if ($reader->getReader()?->getId() === $user->getId() && $reader->isFollowing()) {
                 return true;
             }
         }

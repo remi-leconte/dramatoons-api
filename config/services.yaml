@@ -21,3 +21,10 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+when@test:
+    services:
+        # Les réponses 4xx attendues par les tests ne doivent pas encombrer leur sortie ; les erreurs 500 restent affichées
+        logger:
+            class: Symfony\Component\HttpKernel\Log\Logger
+            arguments: ['critical']

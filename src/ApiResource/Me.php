@@ -54,7 +54,7 @@ final class Me implements ProviderInterface
         $me->id = $user->getId();
         $me->email = $user->getEmail();
         $me->total = $this->webtoonUserRepository->countBookmark($user);
-        $me->username = method_exists($user, 'getUserIdentifier') ? $user->getUserIdentifier() : $user->getEmail();
+        $me->username = $user->getUserIdentifier();
 
         return $me;
     }

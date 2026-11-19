@@ -6,5 +6,4 @@ framework:
         pools:
             cache.redis_tag_aware:
                 adapter: cache.adapter.redis
-                provider: 'redis://redis:6379'
                 tags: true

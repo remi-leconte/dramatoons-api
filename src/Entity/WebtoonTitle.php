@@ -18,11 +18,25 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: WebtoonTitleRepository::class)]
 #[ApiResource(
     operations: [
-        new GetCollection(),
-        new Get(),
-        new Post(security: "is_granted('ROLE_USER')"),
-        new Patch(security: "is_granted('ROLE_MODO') or object.getWebtoon().getCreator() == user"),
-        new Delete(security: "is_granted('ROLE_MODO') or object.getWebtoon().getCreator() == user"),
+        new GetCollection(security: "is_granted('ROLE_MODO')"),
+        new Get(security: "is_granted('WEBTOON_VIEW', object.getWebtoon())"),
+        // Les titres suivent les droits du webtoon associé (WebtoonVoter)
+        new Post(
+            security: "is_granted('ROLE_USER')",
+            securityPostDenormalize: "is_granted('WEBTOON_EDIT', object.getWebtoon())",
+            securityPostDenormalizeMessage: "Impossible d'ajouter un titre à ce webtoon."
+        ),
+        new Patch(
+            security: "is_granted('WEBTOON_EDIT', object.getWebtoon())",
+            securityMessage: "Impossible de modifier ce titre.",
+            // Si le titre est rattaché à un autre webtoon, il faut aussi le droit sur celui-ci
+            securityPostDenormalize: "is_granted('WEBTOON_EDIT', object.getWebtoon())",
+            securityPostDenormalizeMessage: "Impossible de modifier ce titre."
+        ),
+        new Delete(
+            security: "is_granted('WEBTOON_EDIT', object.getWebtoon())",
+            securityMessage: "Impossible de supprimer ce titre."
+        ),
     ],
     normalizationContext: ['groups' => ['webtoon_title:read', 'webtoon:read']],
     denormalizationContext: ['groups' => ['webtoon_title:write']],
@@ -43,6 +57,8 @@ class WebtoonTitle
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank(message: "Le titre est obligatoire.")]
+    // NotBlank et trim() ne voient pas les espaces Unicode (insécable, idéographique) : /u les compte dans \s
+    #[Assert\Regex(pattern: '/\S/u', message: "Le titre est obligatoire.")]
     #[Assert\Length(max: 255, maxMessage: "Le titre ne peut pas dépasser 255 caractères.")]
     #[Groups(['webtoon:read', 'webtoon:write', 'webtoon_title:read', 'webtoon_title:write'])]
     private ?string $title = null;

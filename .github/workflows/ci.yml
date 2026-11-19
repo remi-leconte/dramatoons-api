@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release/*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifications:
+    name: Vérifications
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@2.40.0
+        with:
+          php-version: '8.4'
+          extensions: intl, pdo_mysql, zip, apcu, redis
+          tools: composer:v2
+          coverage: none
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - run: composer install --no-interaction --no-progress --prefer-dist
+
+      - run: composer ci
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-24.04
+    services:
+      mariadb:
+        image: mariadb:12.3.2-noble
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:8.10.0-alpine3.23
+        ports:
+          - 6379:6379
+    env:
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/dramatoons?serverVersion=12.3.2-MariaDB&charset=utf8mb4
+      REDIS_URL: redis://127.0.0.1:6379
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@2.40.0
+        with:
+          php-version: '8.4'
+          extensions: intl, pdo_mysql, zip, apcu, redis
+          tools: composer:v2
+          coverage: none
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - run: composer install --no-interaction --no-progress --prefer-dist
+
+      - run: composer test
+
+  image:
+    name: Image prod
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/php/Dockerfile
+          target: prod
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

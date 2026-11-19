@@ -19,7 +19,7 @@ final class WebtoonProvider implements ProviderInterface
         private TagAwareCacheInterface $cache
     ) {}
 
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array
     {
         /** @var User|null $user */
         $user = $this->security->getUser();
@@ -38,17 +38,17 @@ final class WebtoonProvider implements ProviderInterface
         $limit = !$paginationEnabled ? null : (int) ($filters['itemsPerPage'] ?? 20); // admin / ext
 
         $queryParams = [
-            'mode' => ($filters['mode'] === 'admin' && $this->security->isGranted('ROLE_ADMIN')) ? 'admin' : (in_array($filters['mode'], ['catalogue', 'bibliotheque', 'search', 'ext'], true) ? $filters['mode'] : 'bibliotheque'), // admin / catalogue / bibliotheque / search
+            'mode' => ($filters['mode'] === 'admin' && $this->security->isGranted('ROLE_MODO')) ? 'admin' : (in_array($filters['mode'], ['catalogue', 'bibliotheque', 'search', 'ext'], true) ? $filters['mode'] : 'bibliotheque'), // admin / catalogue / bibliotheque / search
             'title' => $filters['title'] ?? '', // admin / bibliothèque / catalogue
             'status' => $filters['status'] ?? [], // bibliothèque / catalogue
             'exclude_status' => $filters['exclude_status'] ?? [], // bibliothèque / catalogue
-            'statusWebtoon' => ($filters['statusWebtoon'] ?? '' && in_array($filters['statusWebtoon'], ['completed', 'ongoing'], true) ? $filters['statusWebtoon'] : ''), // admin
+            'statusWebtoon' => in_array($filters['statusWebtoon'] ?? null, ['completed', 'ongoing'], true) ? $filters['statusWebtoon'] : '', // tous
             'id' => isset($filters['id']) ? (int) $filters['id'] : null, // admin
             'publish' => isset($filters['publish']) ? filter_var($filters['publish'], FILTER_VALIDATE_BOOLEAN) : true, // admin
             'page' => $page,
             'limit' => $limit, // admin (GET) / bibliothèque / catalogue
             'sortBy' => $filters['sortBy'] ?? 'added',
-            'sortOrder' => $filters['sortOrder'] ?? 'DESC'
+            'sortOrder' => is_string($filters['sortOrder'] ?? null) && 'ASC' === strtoupper($filters['sortOrder']) ? 'ASC' : 'DESC'
         ];
         
         $cacheKey = sprintf('webtoons_u%d_%s', $user->getId(), md5(json_encode($queryParams)));

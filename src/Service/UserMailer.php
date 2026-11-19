@@ -23,7 +23,7 @@ final class UserMailer
      */
     public function sendVerificationEmail(User $user): void
     {
-        $user->setVerified(0);
+        $user->setVerified(false);
         $user->setResetToken(bin2hex(random_bytes(32)));
         $user->setResetTokenExpiration((new \DateTimeImmutable())->modify('+1 hour'));
         $this->em->flush();
