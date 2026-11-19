@@ -19,8 +19,6 @@ concurrency:
 jobs:
   relecture:
     name: Relecture IA
-    # Un brouillon ne peut pas être fusionné : inutile de le relire
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # Lecture seule : le commentaire est publié par le job suivant, hors de portée de Claude
@@ -38,7 +36,13 @@ jobs:
         env:
           AUTEUR: ${{ github.event.pull_request.user.login }}
           DEPOT_SOURCE: ${{ github.event.pull_request.head.repo.full_name }}
+          BROUILLON: ${{ github.event.pull_request.draft }}
         run: |
+          # Un brouillon n'est pas relu, mais son check doit rester rouge jusqu'à la relecture qui suit « Ready for review »
+          if [[ $BROUILLON == true ]]; then
+            echo "::error::Brouillon : pas encore relu"
+            exit 1
+          fi
           if [[ $AUTEUR != remi-leconte || $DEPOT_SOURCE != "$GITHUB_REPOSITORY" ]]; then
             echo "::error::PR de $AUTEUR depuis $DEPOT_SOURCE : pas de relecture IA, à relire à la main"
             exit 1
