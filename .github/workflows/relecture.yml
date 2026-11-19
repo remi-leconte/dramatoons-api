@@ -183,6 +183,7 @@ jobs:
         uses: anthropics/claude-code-action@f431adaf77e0fecf918431e75a2b5b45b85af002 # v1.0.283
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Sans jeton fourni, l'action en demande un à son application GitHub (OIDC) : celui du job suffit, en lecture seule
           github_token: ${{ github.token }}
           prompt: |
             Tu relis la PR #${{ github.event.pull_request.number }} du dépôt ${{ github.repository }}.
