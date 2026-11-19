@@ -1,7 +1,8 @@
 name: Livraison
 
 # Fusion d'une release dans main : l'image recettée devient la version vX.Y.Z sans être reconstruite,
-# puis elle est déployée en recette pour une dernière vérification, et en production après approbation
+# puis elle est déployée en production après approbation.
+# La recette n'est pas redéployée : elle tourne déjà sur cette image
 on:
   push:
     branches:
@@ -10,7 +11,7 @@ on:
 permissions: {}
 
 # Livraisons l'une après l'autre. Un run qui attend l'approbation de la production bloque le suivant :
-# rejeter ce déploiement si la dernière vérification de la recette échoue
+# rejeter ce déploiement si la version ne doit finalement pas partir en production
 concurrency:
   group: livraison
   cancel-in-progress: false
@@ -85,31 +86,11 @@ jobs:
           VERSION: ${{ needs.release.outputs.version }}
         run: gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$VERSION" -f sha="$GITHUB_SHA"
 
-  recette:
-    name: Déploiement recette
-    needs: [release, version]
-    runs-on: ubuntu-24.04
-    environment: staging
-    permissions: {}
-    steps:
-      - name: Déploiement sur le serveur
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          VERSION: ${{ needs.release.outputs.version }}
-        run: |
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          (umask 077 && printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy)
-          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
-            "deploy@$SSH_HOST" api "$VERSION"
-
   production:
     name: Déploiement production
-    needs: [release, recette]
+    needs: [release, version]
     runs-on: ubuntu-24.04
-    # Attend l'approbation de l'utilisateur, donnée après la dernière vérification de la recette
+    # Attend l'approbation de l'utilisateur
     environment: production
     permissions: {}
     steps:
