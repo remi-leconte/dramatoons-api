@@ -120,8 +120,9 @@ Le job « Vérifications » n'a pas de base de données : Symfony y lit le `.env
 
 ### Relecture IA
 `.github/workflows/relecture.yml` relit chaque PR vers `release/*` (ouverture, nouveau push, sortie de brouillon) avec Claude Code (`anthropics/claude-code-action`), et produit le check « Relecture IA » :
-- Seulement pour les PR de `remi-leconte` dont la branche vient du dépôt : le jeton de l'abonnement Claude (secret `CLAUDE_CODE_OAUTH_TOKEN`) n'est jamais utilisé pour une PR extérieure. Un nouveau push annule la relecture en cours.
+- Seulement pour les PR de `remi-leconte` dont la branche vient du dépôt : le jeton de l'abonnement Claude (secret `CLAUDE_CODE_OAUTH_TOKEN`) n'est jamais utilisé pour une PR extérieure. Pour toute autre PR, le check est rouge (« pas de relecture IA ») plutôt que sauté, car un check sauté compte comme réussi : une telle PR se relit à la main. Un brouillon n'est pas relu. Un nouveau push annule la relecture en cours.
 - Le job rassemble d'abord, sans IA, le contexte dans `_relecture/` : la PR, son ticket, le ticket principal et ses sous-tickets, et les PR ouvertes des autres dépôts pour ces tickets. Les PR d'un même ticket sont ainsi relues ensemble, pour la cohérence entre l'API et le front.
+- Une branche hors convention, ou dont le ticket est introuvable, n'arrête pas le job : la relecture la signale comme remarque.
 - Claude lit ensuite les consignes de `relecture/consignes.md` du dépôt `dramatoons-workspace` (cloné dans `_workspace/`), avec les règles métier et le workflow. Il n'a que des outils de lecture, aucun accès à GitHub, et rend un verdict JSON.
 - Check rouge à la moindre remarque, vert sinon. Le verdict et les remarques sont publiés en commentaire de la PR par un second job, seul à avoir le droit d'écrire sur la PR.
 - La relecture ne fusionne rien, et la fusion automatique de GitHub n'est pas utilisée : un ticket qui touche l'API et le front a une PR dans chaque dépôt, que GitHub fusionnerait chacune de son côté. Claude fusionne toutes les PR du ticket ensemble, une fois toutes vertes, ou aucune (skill `workflow-github`).

@@ -19,11 +19,8 @@ concurrency:
 jobs:
   relecture:
     name: Relecture IA
-    # Le jeton d'abonnement ne sert qu'aux PR de l'utilisateur, jamais à celles d'un fork ou d'un autre auteur
-    if: >-
-      !github.event.pull_request.draft
-      && github.event.pull_request.user.login == 'remi-leconte'
-      && github.event.pull_request.head.repo.full_name == github.repository
+    # Un brouillon ne peut pas être fusionné : inutile de le relire
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # Lecture seule : le commentaire est publié par le job suivant, hors de portée de Claude
@@ -34,6 +31,18 @@ jobs:
     outputs:
       verdict: ${{ steps.verdict.outputs.verdict }}
     steps:
+      # Le jeton d'abonnement ne sert qu'aux PR de l'utilisateur. Pour toute autre PR, le check est rouge :
+      # sauté, il compterait comme réussi et laisserait fusionner une PR que personne n'a relue
+      - name: Périmètre
+        env:
+          AUTEUR: ${{ github.event.pull_request.user.login }}
+          DEPOT_SOURCE: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          if [[ $AUTEUR != remi-leconte || $DEPOT_SOURCE != "$GITHUB_REPOSITORY" ]]; then
+            echo "::error::PR de $AUTEUR depuis $DEPOT_SOURCE : pas de relecture IA, à relire à la main"
+            exit 1
+          fi
+
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
@@ -69,8 +78,13 @@ jobs:
             subIssues(first:20){nodes{number repository{name}}}}}}'
           ticket() { gh api graphql -f query="$requete" -f o="$proprietaire" -f d="$1" -F n="$2" --jq .data.repository.issue; }
 
-          # Le ticket principal et ses sous-tickets : les PR d'un même ticket se relisent ensemble
-          courant=$(ticket "${GITHUB_REPOSITORY#*/}" "${BASH_REMATCH[1]}")
+          # Le ticket principal et ses sous-tickets : les PR d'un même ticket se relisent ensemble.
+          # Un ticket introuvable est une erreur de la branche, à signaler par la relecture, pas une panne
+          numero=${BASH_REMATCH[1]}
+          if ! courant=$(ticket "${GITHUB_REPOSITORY#*/}" "$numero") || [[ -z $courant || $courant == null ]]; then
+            echo "Ticket #$numero introuvable dans ${GITHUB_REPOSITORY#*/} : branche hors convention" >"$dossier/tickets.txt"
+            exit 0
+          fi
           if [[ $(jq -r '.parent // empty' <<<"$courant") ]]; then
             principal=$(ticket "$(jq -r .parent.repository.name <<<"$courant")" "$(jq -r .parent.number <<<"$courant")")
           else
