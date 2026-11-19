@@ -32,10 +32,12 @@ jobs:
     steps:
       # Le jeton d'abonnement ne sert qu'aux PR de l'utilisateur. Pour toute autre PR, le check est rouge :
       # sauté, il compterait comme réussi et laisserait fusionner une PR que personne n'a relue
-      - name: Périmètre
+      - id: perimetre
+        name: Périmètre
         env:
           AUTEUR: ${{ github.event.pull_request.user.login }}
           DEPOT_SOURCE: ${{ github.event.pull_request.head.repo.full_name }}
+          BRANCHE: ${{ github.event.pull_request.head.ref }}
           BROUILLON: ${{ github.event.pull_request.draft }}
         run: |
           # Un brouillon n'est pas relu, mais son check doit rester rouge jusqu'à la relecture qui suit « Ready for review »
@@ -47,12 +49,21 @@ jobs:
             echo "::error::PR de $AUTEUR depuis $DEPOT_SOURCE : pas de relecture IA, à relire à la main"
             exit 1
           fi
+          # Fusion de main dans une release (après un hotfix ou une livraison) : ce code a déjà été relu et livré
+          if [[ $BRANCHE == main ]]; then
+            echo "::notice::Synchronisation de main : déjà relu, pas de relecture IA"
+            echo "mode=synchronisation" >>"$GITHUB_OUTPUT"
+          else
+            echo "mode=relecture" >>"$GITHUB_OUTPUT"
+          fi
 
-      - uses: actions/checkout@v7
+      - if: steps.perimetre.outputs.mode == 'relecture'
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      - uses: actions/checkout@v7
+      - if: steps.perimetre.outputs.mode == 'relecture'
+        uses: actions/checkout@v7
         with:
           repository: remi-leconte/dramatoons-workspace
           path: _workspace
@@ -60,6 +71,7 @@ jobs:
 
       # Le contexte est rassemblé avant Claude, qui n'a ensuite besoin d'aucun accès à GitHub
       - name: Contexte de la PR
+        if: steps.perimetre.outputs.mode == 'relecture'
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
@@ -118,6 +130,7 @@ jobs:
           ls -l "$dossier"
 
       - id: claude
+        if: steps.perimetre.outputs.mode == 'relecture'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -141,6 +154,7 @@ jobs:
 
       - id: verdict
         name: Verdict
+        if: steps.perimetre.outputs.mode == 'relecture'
         env:
           RESULTAT: ${{ steps.claude.outputs.structured_output }}
         run: |
