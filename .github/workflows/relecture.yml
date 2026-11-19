@@ -72,6 +72,8 @@ jobs:
       # Le contexte est rassemblé avant Claude, qui n'a ensuite besoin d'aucun accès à GitHub
       - name: Contexte de la PR
         if: steps.perimetre.outputs.mode == 'relecture'
+        # Explicite : GitHub ajoute alors pipefail, sans quoi l'échec d'une lecture dans un pipeline passerait inaperçu
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
@@ -93,17 +95,33 @@ jobs:
             number title body repository{name}
             parent{number repository{name}}
             subIssues(first:20){nodes{number repository{name}}}}}}'
-          ticket() { gh api graphql -f query="$requete" -f o="$proprietaire" -f d="$1" -F n="$2" --jq .data.repository.issue; }
+          # Un ticket introuvable (seule erreur NOT_FOUND) est une erreur de la branche, à signaler par la relecture.
+          # Toute autre erreur est une panne : l'étape échoue, et le check avec, sans verdict
+          ticket() {
+            local reponse
+            if reponse=$(gh api graphql -f query="$requete" -f o="$proprietaire" -f d="$1" -F n="$2" 2>/dev/null); then
+              jq -c .data.repository.issue <<<"$reponse"
+            elif jq -e '[.errors[]?.type] | length > 0 and all(. == "NOT_FOUND")' <<<"$reponse" >/dev/null 2>&1; then
+              echo null
+            else
+              echo "::error::Lecture du ticket #$2 de $1 impossible" >&2
+              return 1
+            fi
+          }
 
-          # Le ticket principal et ses sous-tickets : les PR d'un même ticket se relisent ensemble.
-          # Un ticket introuvable est une erreur de la branche, à signaler par la relecture, pas une panne
+          # Le ticket principal et ses sous-tickets : les PR d'un même ticket se relisent ensemble
           numero=${BASH_REMATCH[1]}
-          if ! courant=$(ticket "${GITHUB_REPOSITORY#*/}" "$numero") || [[ -z $courant || $courant == null ]]; then
+          courant=$(ticket "${GITHUB_REPOSITORY#*/}" "$numero")
+          if [[ $courant == null ]]; then
             echo "Ticket #$numero introuvable dans ${GITHUB_REPOSITORY#*/} : branche hors convention" >"$dossier/tickets.txt"
             exit 0
           fi
           if [[ $(jq -r '.parent // empty' <<<"$courant") ]]; then
             principal=$(ticket "$(jq -r .parent.repository.name <<<"$courant")" "$(jq -r .parent.number <<<"$courant")")
+            if [[ $principal == null ]]; then
+              echo "Ticket principal du #$numero introuvable" >"$dossier/tickets.txt"
+              exit 0
+            fi
           else
             principal=$courant
           fi
