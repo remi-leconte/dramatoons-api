@@ -121,9 +121,12 @@ jobs:
             Tu relis la PR #${{ github.event.pull_request.number }} du dépôt ${{ github.repository }}.
             Lis d'abord `_workspace/relecture/consignes.md` et applique-les à la lettre.
             Le contexte de la PR est dans `_relecture/`.
+          # --tools fixe les seuls outils disponibles : --allowedTools ne fait que dispenser de permission,
+          # et le contenu relu, venu de la PR, ne doit pouvoir lancer ni sous-agent ni action
           claude_args: >-
             --model claude-opus-5-5
             --max-turns 80
+            --tools "Read,Glob,Grep"
             --allowedTools "Read,Glob,Grep"
             --disallowedTools "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch"
             --json-schema '{"type":"object","required":["verdict","resume","remarques"],"properties":{"verdict":{"enum":["VALIDÉE","BLOQUÉE"]},"resume":{"type":"string"},"remarques":{"type":"array","items":{"type":"object","required":["pr","emplacement","probleme","correction"],"properties":{"pr":{"type":"string"},"emplacement":{"type":"string"},"probleme":{"type":"string"},"correction":{"type":"string"}}}}}}'
