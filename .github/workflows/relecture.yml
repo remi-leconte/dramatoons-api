@@ -138,8 +138,15 @@ jobs:
           jq -r '.[] | "\(.repository.name) \(.number)"' "$dossier/tickets.json" |
             while read -r depot numero; do
               [[ $depot == "${GITHUB_REPOSITORY#*/}" ]] && continue
-              autre=$(gh pr list -R "$proprietaire/$depot" --base "$BASE" --state open --json number,headRefName \
-                --jq "[.[] | select(.headRefName | test(\"^[a-z]+/#$numero-\"))][0].number // empty")
+              # Mêmes critères que le périmètre : une PR d'un fork ou d'un autre auteur n'est jamais lue comme PR liée
+              autre=$(gh pr list -R "$proprietaire/$depot" --base "$BASE" --state open \
+                --json number,headRefName,isCrossRepository,author \
+                --jq "[.[] | select(.headRefName | test(\"^[a-z]+/#$numero-\"))
+                  | select(.isCrossRepository == false and .author.login == \"remi-leconte\") | .number] | join(\" \")")
+              if [[ $autre == *" "* ]]; then
+                echo "$depot : plusieurs PR ouvertes vers $BASE pour le ticket #$numero ($autre)" >>"$dossier/pr-liees-ambigues.txt"
+                continue
+              fi
               if [[ -z $autre ]]; then
                 echo "$depot : aucune PR ouverte vers $BASE pour le ticket #$numero" >>"$dossier/pr-liees-manquantes.txt"
                 continue
