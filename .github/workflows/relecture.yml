@@ -1,8 +1,7 @@
 name: Relecture
 
 # Relecture IA de chaque PR vers une release : un check rouge à la moindre remarque, publiée en commentaire.
-# Les PR sont fusionnées par Claude en local, et non par GitHub : un ticket qui touche plusieurs dépôts
-# a une PR par dépôt, fusionnées toutes ensemble une fois toutes vertes, ou aucune
+# La relecture ne fusionne rien (fusion des PR d'un ticket : skill workflow-github)
 on:
   pull_request:
     branches:
