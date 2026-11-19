@@ -87,6 +87,8 @@ jobs:
           gh pr view "$PR" -R "$GITHUB_REPOSITORY" \
             --json number,title,body,baseRefName,headRefName,mergeable,files,commits >"$dossier/pr.json"
           gh pr diff "$PR" -R "$GITHUB_REPOSITORY" >"$dossier/pr.diff"
+          # L'action remet le CLAUDE.md de la branche cible avant de lancer Claude : celui de la PR se lit ici
+          [[ -f CLAUDE.md ]] && cp CLAUDE.md "$dossier/CLAUDE.pr.md"
 
           if ! [[ $BRANCHE =~ ^[a-z]+/#([0-9]+)- ]]; then
             echo "Branche hors convention : pas de ticket à rassembler" >"$dossier/tickets.txt"
