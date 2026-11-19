@@ -142,7 +142,14 @@ jobs:
           {
             echo "$principal"
             jq -r '.subIssues.nodes[] | "\(.repository.name) \(.number)"' <<<"$principal" |
-              while read -r depot numero; do ticket "$depot" "$numero"; done
+              while read -r depot numero; do
+                sous_ticket=$(ticket "$depot" "$numero")
+                if [[ $sous_ticket == null ]]; then
+                  echo "$depot : sous-ticket #$numero introuvable" >>"$dossier/pr-liees-manquantes.txt"
+                else
+                  echo "$sous_ticket"
+                fi
+              done
           } | jq -s . >"$dossier/tickets.json"
 
           # Les PR ouvertes des autres dépôts pour ces tickets, vers la même release
