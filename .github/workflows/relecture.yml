@@ -63,6 +63,17 @@ jobs:
         with:
           persist-credentials: false
 
+      # _relecture/ et _workspace/ sont écrits par ce job : versionnés par la PR, ils y glisseraient un faux contexte
+      - name: Dossiers réservés
+        if: steps.perimetre.outputs.mode == 'relecture'
+        run: |
+          for dossier in _relecture _workspace; do
+            if [[ -e $dossier ]]; then
+              echo "::error::La PR versionne $dossier/, réservé à la relecture : à retirer de la PR"
+              exit 1
+            fi
+          done
+
       - if: steps.perimetre.outputs.mode == 'relecture'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
