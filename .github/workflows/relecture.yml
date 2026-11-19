@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - 'release/*'
+    # Pas `edited` : chaque modification du titre lancerait un run, et un job sauté remplacerait un verdict rouge par
+    # un check réussi. Une PR ne change donc jamais de cible : on la ferme et on en ouvre une nouvelle
     types: [opened, synchronize, reopened, ready_for_review]
 
 permissions: {}
