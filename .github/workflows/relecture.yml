@@ -181,14 +181,14 @@ jobs:
             Le contexte de la PR est dans `_relecture/`.
           # Le contenu relu vient de la PR : il ne doit pouvoir lancer ni sous-agent ni action.
           # --setting-sources user : la configuration du dépôt relu (CLAUDE.md, .claude/, .mcp.json) n'est pas chargée,
-          # elle ne se lit que comme une donnée. --tools fixe les seuls outils disponibles : --allowedTools ne fait que
-          # dispenser de permission
+          # elle ne se lit que comme une donnée. --tools fixe les seuls outils disponibles. Sans --allowedTools, une lecture
+          # hors du dossier de travail demande une permission, refusée faute de quelqu'un pour l'accorder : le relecteur
+          # ne lit ni le reste du runner ni ses secrets
           claude_args: >-
             --model claude-opus-5-5
             --max-turns 80
             --setting-sources user
             --tools "Read,Glob,Grep"
-            --allowedTools "Read,Glob,Grep"
             --disallowedTools "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch"
             --json-schema '{"type":"object","required":["verdict","resume","remarques"],"properties":{"verdict":{"enum":["VALIDÉE","BLOQUÉE"]},"resume":{"type":"string"},"remarques":{"type":"array","items":{"type":"object","required":["pr","emplacement","probleme","correction"],"properties":{"pr":{"type":"string"},"emplacement":{"type":"string"},"probleme":{"type":"string"},"correction":{"type":"string"}}}}}}'
 
