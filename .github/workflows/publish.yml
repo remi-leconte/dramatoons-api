@@ -96,8 +96,14 @@ jobs:
             exit 0
           fi
           numero=${BASH_REMATCH[1]}
+          # Seulement depuis In Review : relancer ce job (retour arrière de la recette) ne doit pas faire reculer
+          # un ticket déjà recetté
           item=$(gh project item-list 4 --owner remi-leconte --format json -L 1000 \
-            --jq ".items[] | select(.content.repository == \"$GITHUB_REPOSITORY\" and .content.number == $numero) | .id")
+            --jq ".items[] | select(.content.repository == \"$GITHUB_REPOSITORY\" and .content.number == $numero and .status == \"In Review\") | .id")
+          if [[ -z $item ]]; then
+            echo "Ticket #$numero : pas en In Review, statut laissé tel quel"
+            exit 0
+          fi
           gh project item-edit --project-id "$PROJET" --id "$item" --field-id "$CHAMP_STATUT" \
             --single-select-option-id "$STATUT_IN_QA"
           echo "Ticket #$numero : In QA"
