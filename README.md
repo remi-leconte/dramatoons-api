@@ -1,6 +1,6 @@
 # Dramatoons : API
 
-[![CI](https://github.com/remi-leconte/dramatoons-api/actions/workflows/ci.yml/badge.svg)](https://github.com/remi-leconte/dramatoons-api/actions/workflows/ci.yml)
+[![Livraison](https://github.com/remi-leconte/dramatoons-api/actions/workflows/livraison.yml/badge.svg?branch=main)](https://github.com/remi-leconte/dramatoons-api/actions/workflows/livraison.yml)
 [![Dernière release](https://img.shields.io/github/v/release/remi-leconte/dramatoons-api?label=release)](https://github.com/remi-leconte/dramatoons-api/releases/latest)
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
