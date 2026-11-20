@@ -141,7 +141,7 @@ Le job « Vérifications » n'a pas de base de données : Symfony y lit le `.env
 - Étiquettes : `release-vX.Y.Z` (dernière fusion dans la release) et `sha-<commit>`. Pas de `latest`. L'étiquette `vX.Y.Z` est ajoutée à la livraison, sans reconstruire l'image (voir « Livraison »).
 - Job « Publication image », distinct du check « Image prod » de la CI. Les publications d'une même branche passent l'une après l'autre, sans annulation ; seule exception de GitHub : sur trois fusions très rapprochées, celle du milieu, encore en attente, est remplacée et son `sha-<commit>` n'est pas publié.
 - Droits : aucun par défaut (`permissions: {}`). Le job « Publication image » n'a que le `GITHUB_TOKEN`, limité à `contents: read` et `packages: write`, et aucun secret ; dans ce workflow, les secrets SSH ne servent qu'au job « Déploiement recette » (ci-dessous).
-- `.dockerignore` exclut de l'image ce qui ne sert pas en production : tests, outillage de développement, `CLAUDE.md`.
+- `.dockerignore` exclut de l'image ce qui ne sert pas en production : tests, outillage de développement, `CLAUDE.md` et `README.md`.
 
 Sur `release/*`, le job « Déploiement recette » suit la publication :
 - Il tourne dans l'environnement GitHub `staging`, dont les secrets (`SSH_HOST`, `SSH_KNOWN_HOSTS`, `SSH_PRIVATE_KEY`) ne sont donnés qu'aux branches `release/*`.

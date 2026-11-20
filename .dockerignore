@@ -18,3 +18,4 @@ phpunit.dist.xml
 phpstan.dist.neon
 .phpunit.cache
 CLAUDE.md
+README.md
