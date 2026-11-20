@@ -171,7 +171,7 @@ Sur `release/*`, le job « Déploiement recette » suit la publication :
 
 ## Statuts des tickets
 Les jobs « Déploiement recette » et « Déploiement production » finissent par une étape « Statuts des tickets », qui change le champ Status du projet GitHub Dramatoons avec `gh project` :
-- recette : le ticket de la PR fusionnée passe en `In QA`, seulement s'il est en `In Review`. Relancer le job pour revenir en arrière (voir « Publication et déploiement ») ne fait donc pas reculer un ticket déjà recetté, en `Ready to Deploy` par exemple ;
+- recette : le ticket de la PR fusionnée passe en `In QA`, s'il est en `In Review`. Une relance du job (retour arrière, voir « Publication et déploiement », ou après un déploiement échoué) ne change aucun statut : le commit redéployé n'est pas forcément la dernière version du ticket, qui ne doit ni reculer ni avancer à tort ;
 - production : les tickets du dépôt de la version livrée (champ Release) qui sont en `Ready to Deploy` passent en `Done`. Relancer le job d'une version précédente ne change rien : ses tickets sont déjà en `Done`. Les tickets de l'API passent ainsi à l'approbation de sa production, ceux du front à la sienne.
 
 Le `GITHUB_TOKEN` ne peut pas écrire dans un projet d'utilisateur : l'étape utilise le secret `PROJECT_TOKEN`, un jeton classique de `remi-leconte` limité à la portée `project`, avec une date d'expiration. Il n'existe que dans les environnements `staging` et `production` : seuls les jobs de déploiement le reçoivent, jamais une PR. À son expiration, le renouveler dans les deux environnements de l'API et du front.
