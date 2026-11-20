@@ -75,3 +75,29 @@ jobs:
           # La clé n'autorise côté serveur que le script de déploiement : seuls le composant et le commit sont transmis
           ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
             "deploy@$SSH_HOST" api "$GITHUB_SHA"
+
+      # Après le déploiement, sans pouvoir le faire échouer : un statut se corrige à la main, alors qu'un job
+      # rouge pousserait à relancer le déploiement
+      - name: Statuts des tickets
+        continue-on-error: true
+        shell: bash
+        env:
+          # Le GITHUB_TOKEN ne peut pas écrire dans un projet d'utilisateur
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJET: "PVT_kwHOAjbdoM4BgsYh"
+          CHAMP_STATUT: "PVTSSF_lAHOAjbdoM4BgsYhzhfq9h4"
+          STATUT_IN_QA: "df73e18b"
+        run: |
+          branche=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+            --jq "[.[] | select(.merge_commit_sha == \"$GITHUB_SHA\")][0].head.ref // \"\"")
+          # Une synchronisation main → release n'a pas de ticket
+          if ! [[ $branche =~ ^[a-z]+/#([0-9]+)- ]]; then
+            echo "Pas une fusion de branche de ticket : aucun statut à changer"
+            exit 0
+          fi
+          numero=${BASH_REMATCH[1]}
+          item=$(gh project item-list 4 --owner remi-leconte --format json -L 1000 \
+            --jq ".items[] | select(.content.repository == \"$GITHUB_REPOSITORY\" and .content.number == $numero) | .id")
+          gh project item-edit --project-id "$PROJET" --id "$item" --field-id "$CHAMP_STATUT" \
+            --single-select-option-id "$STATUT_IN_QA"
+          echo "Ticket #$numero : In QA"
