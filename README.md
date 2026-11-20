@@ -6,6 +6,8 @@
 
 API REST de [Dramatoons](https://dramatoons.ovh), un site de suivi de lecture de webtoons (bandes dessinées en ligne) : chaque lecteur tient sa bibliothèque, note les webtoons et retrouve le dernier chapitre lu.
 
+> **Dramatoons n'héberge aucun webtoon.** Il conserve la fiche de chaque webtoon (titres, statut, couverture) et la progression de chaque lecteur (dernier chapitre lu, note, état), jamais le contenu des webtoons : aucun chapitre, aucune planche, et aucun lien vers des plateformes de diffusion non autorisées. Les webtoons se lisent ailleurs, sur les plateformes choisies par le lecteur.
+
 ## Fonctionnalités
 
 - **Webtoons** : titre principal et titres alternatifs, statut (en cours ou terminé), couverture, note moyenne et nombre de lecteurs.
