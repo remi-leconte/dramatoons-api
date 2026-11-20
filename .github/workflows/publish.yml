@@ -106,7 +106,8 @@ jobs:
             exit 0
           fi
           numero=${BASH_REMATCH[1]}
-          item=$(gh project item-list 4 --owner remi-leconte --format json -L 1000 \
+          # @me : le projet appartient au compte du jeton
+          item=$(gh project item-list 4 --owner "@me" --format json -L 1000 \
             --jq ".items[] | select(.content.repository == \"$GITHUB_REPOSITORY\" and .content.number == $numero and .status == \"In Review\") | .id")
           if [[ -z $item ]]; then
             echo "::warning::Ticket #$numero introuvable en In Review (statut déjà changé, ou état renommé) : à vérifier à la main"
