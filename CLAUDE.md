@@ -144,7 +144,7 @@ Le job « Vérifications » n'a pas de base de données : Symfony y lit le `.env
 - `.dockerignore` exclut de l'image ce qui ne sert pas en production : tests, outillage de développement, `CLAUDE.md` et `README.md`.
 
 Sur `release/*`, le job « Déploiement recette » suit la publication :
-- Il tourne dans l'environnement GitHub `staging`, dont les secrets (`SSH_HOST`, `SSH_KNOWN_HOSTS`, `SSH_PRIVATE_KEY`) ne sont donnés qu'aux branches `release/*`.
+- Il tourne dans l'environnement GitHub `staging`, dont les secrets (`SSH_HOST`, `SSH_KNOWN_HOSTS`, `SSH_PRIVATE_KEY`, `PROJECT_TOKEN`) ne sont donnés qu'aux branches `release/*`.
 - Il se connecte au serveur avec une clé dédiée, limitée côté serveur à un script de déploiement (hors dépôt), et ne lui transmet que `api` et le commit. Le script télécharge `compose.yaml`, `compose.prod.yaml` et `docker/nginx/default.conf` de ce commit, récupère l'image `sha-<commit>`, redémarre la pile (les migrations passent au démarrage de `php`), vérifie que l'API répond, puis supprime les anciennes images.
 - La recette déployée ainsi ne construit rien : son dossier ne contient que `.env.local`, `.env.image`, `config/jwt/` et les fichiers téléchargés (`compose.yaml`, `compose.prod.yaml`, `docker/nginx/default.conf`), sans le code ; les données restent dans les volumes.
 - Revenir à une version précédente :
