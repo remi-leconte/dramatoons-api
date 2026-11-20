@@ -61,7 +61,10 @@ jobs:
     runs-on: ubuntu-24.04
     # Les secrets de connexion ne sont donnés qu'aux branches autorisées par l'environnement
     environment: staging
-    permissions: {}
+    # Lecture de la PR fusionnée par l'étape des statuts : PROJECT_TOKEN ne sert qu'au projet
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Déploiement sur le serveur
         env:
@@ -87,6 +90,7 @@ jobs:
           PROJET: "PVT_kwHOAjbdoM4BgsYh"
           CHAMP_STATUT: "PVTSSF_lAHOAjbdoM4BgsYhzhfq9h4"
           STATUT_IN_QA: "df73e18b"
+          LECTURE_PR: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Une relance (retour arrière, ou après un déploiement échoué) ne redéploie pas forcément la dernière
           # version du ticket : son statut se vérifie à la main
@@ -94,7 +98,7 @@ jobs:
             echo "::notice::Relance du job : statuts des tickets laissés tels quels, à vérifier à la main"
             exit 0
           fi
-          branche=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+          branche=$(GH_TOKEN=$LECTURE_PR gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
             --jq "[.[] | select(.merge_commit_sha == \"$GITHUB_SHA\")][0].head.ref // \"\"")
           # Une synchronisation main → release n'a pas de ticket
           if ! [[ $branche =~ ^[a-z]+/#([0-9]+)- ]]; then
