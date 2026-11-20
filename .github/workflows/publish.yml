@@ -105,7 +105,7 @@ jobs:
           item=$(gh project item-list 4 --owner remi-leconte --format json -L 1000 \
             --jq ".items[] | select(.content.repository == \"$GITHUB_REPOSITORY\" and .content.number == $numero and .status == \"In Review\") | .id")
           if [[ -z $item ]]; then
-            echo "Ticket #$numero : pas en In Review, statut laissé tel quel"
+            echo "::warning::Ticket #$numero introuvable en In Review (statut déjà changé, ou état renommé) : à vérifier à la main"
             exit 0
           fi
           gh project item-edit --project-id "$PROJET" --id "$item" --field-id "$CHAMP_STATUT" \

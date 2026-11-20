@@ -120,10 +120,14 @@ jobs:
           STATUT_DONE: "98236657"
           VERSION: ${{ needs.release.outputs.version }}
         run: |
-          gh project item-list 4 --owner remi-leconte --format json -L 1000 \
-            --jq ".items[] | select(.content.repository == \"$GITHUB_REPOSITORY\" and .release == \"$VERSION\" and .status == \"Ready to Deploy\") | \"\\(.id) \\(.content.number)\"" |
-            while read -r item numero; do
-              gh project item-edit --project-id "$PROJET" --id "$item" --field-id "$CHAMP_STATUT" \
-                --single-select-option-id "$STATUT_DONE"
-              echo "Ticket #$numero : Done"
-            done
+          tickets=$(gh project item-list 4 --owner remi-leconte --format json -L 1000 \
+            --jq ".items[] | select(.content.repository == \"$GITHUB_REPOSITORY\" and .release == \"$VERSION\" and .status == \"Ready to Deploy\") | \"\\(.id) \\(.content.number)\"")
+          if [[ -z $tickets ]]; then
+            echo "::warning::Aucun ticket $VERSION en Ready to Deploy (déjà en Done, relance, ou état ou champ renommé) : à vérifier à la main"
+            exit 0
+          fi
+          while read -r item numero; do
+            gh project item-edit --project-id "$PROJET" --id "$item" --field-id "$CHAMP_STATUT" \
+              --single-select-option-id "$STATUT_DONE"
+            echo "Ticket #$numero : Done"
+          done <<<"$tickets"
