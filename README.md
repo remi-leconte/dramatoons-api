@@ -30,7 +30,9 @@ Le détail (organisation du code, endpoints, configuration) est dans le [`CLAUDE
 
 ## Démarrer en local
 
-Prérequis : Docker avec Docker Compose, et le réseau Docker externe `global_proxy_network`.
+Prérequis :
+- Docker avec Docker Compose, et le réseau Docker externe `global_proxy_network` ;
+- en dev, le conteneur `php` tourne avec l'uid 1000 et écrit dans le dossier du dépôt, qu'il monte (dépendances, clés JWT, cache) : sur Linux, cloner le dépôt avec un utilisateur d'uid 1000 (`id -u`), ou adapter la ligne `user` de `compose.override.yaml`.
 
 ```sh
 git clone https://github.com/remi-leconte/dramatoons-api.git
