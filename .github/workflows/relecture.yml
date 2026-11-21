@@ -157,8 +157,10 @@ jobs:
           jq -r '.[] | "\(.repository.name) \(.number)"' "$dossier/tickets.json" |
             while read -r depot numero; do
               [[ $depot == "${GITHUB_REPOSITORY#*/}" ]] && continue
-              # Mêmes critères que le périmètre : une PR d'un fork ou d'un autre auteur n'est jamais lue comme PR liée
-              autre=$(gh pr list -R "$proprietaire/$depot" --state open \
+              # Mêmes critères que le périmètre : une PR d'un fork ou d'un autre auteur n'est jamais lue comme PR liée.
+              # Sans filtre sur la cible, la liste couvre toutes les PR ouvertes du dépôt : --limit la lit en entier
+              # (30 par défaut), sans quoi la PR du ticket, ou une seconde PR ambiguë, pourrait en sortir
+              autre=$(gh pr list -R "$proprietaire/$depot" --state open --limit 1000 \
                 --json number,headRefName,isCrossRepository,author \
                 --jq "[.[] | select(.headRefName | test(\"^[a-z]+/#$numero-\"))
                   | select(.isCrossRepository == false and .author.login == \"remi-leconte\") | .number] | join(\" \")")
