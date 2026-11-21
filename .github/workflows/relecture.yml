@@ -90,6 +90,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.ref }}
           BRANCHE: ${{ github.event.pull_request.head.ref }}
         run: |
           dossier=_relecture
@@ -152,24 +153,26 @@ jobs:
               done
           } | jq -s . >"$dossier/tickets.json"
 
-          # Les PR ouvertes des autres dépôts pour ces tickets, quelle que soit leur cible : l'API et le front livrent
-          # par release, l'extension par main
+          # Les PR ouvertes des autres dépôts pour ces tickets : vers la même release pour l'API et le front, qui ont
+          # toujours la même version, et vers main pour l'extension, qui n'a pas de release
           jq -r '.[] | "\(.repository.name) \(.number)"' "$dossier/tickets.json" |
             while read -r depot numero; do
               [[ $depot == "${GITHUB_REPOSITORY#*/}" ]] && continue
+              cible=$BASE
+              [[ $depot == dramatoons-browser-extension ]] && cible=main
               # Mêmes critères que le périmètre : une PR d'un fork ou d'un autre auteur n'est jamais lue comme PR liée.
-              # Sans filtre sur la cible, la liste couvre toutes les PR ouvertes du dépôt : --limit la lit en entier
-              # (30 par défaut), sans quoi la PR du ticket, ou une seconde PR ambiguë, pourrait en sortir
-              autre=$(gh pr list -R "$proprietaire/$depot" --state open --limit 1000 \
+              # --limit lit toutes les PR ouvertes vers la cible (30 par défaut), sans quoi la PR du ticket, ou une
+              # seconde PR ambiguë, pourrait sortir de la liste
+              autre=$(gh pr list -R "$proprietaire/$depot" --base "$cible" --state open --limit 1000 \
                 --json number,headRefName,isCrossRepository,author \
                 --jq "[.[] | select(.headRefName | test(\"^[a-z]+/#$numero-\"))
                   | select(.isCrossRepository == false and .author.login == \"remi-leconte\") | .number] | join(\" \")")
               if [[ $autre == *" "* ]]; then
-                echo "$depot : plusieurs PR ouvertes pour le ticket #$numero ($autre)" >>"$dossier/pr-liees-ambigues.txt"
+                echo "$depot : plusieurs PR ouvertes vers $cible pour le ticket #$numero ($autre)" >>"$dossier/pr-liees-ambigues.txt"
                 continue
               fi
               if [[ -z $autre ]]; then
-                echo "$depot : aucune PR ouverte pour le ticket #$numero" >>"$dossier/pr-liees-manquantes.txt"
+                echo "$depot : aucune PR ouverte vers $cible pour le ticket #$numero" >>"$dossier/pr-liees-manquantes.txt"
                 continue
               fi
               gh pr view "$autre" -R "$proprietaire/$depot" \
