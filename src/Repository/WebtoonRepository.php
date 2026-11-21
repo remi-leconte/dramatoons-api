@@ -156,6 +156,17 @@ final class WebtoonRepository extends ServiceEntityRepository
         return $ordered;
     }
 
+    /**
+     * Même condition que le listing de la bibliothèque (et de l'extension).
+     */
+    public function countLibrary(User $user): int
+    {
+        $qb = $this->createQueryBuilder('w')->select('COUNT(DISTINCT w.id)');
+        $this->addLibraryCondition($qb, $user);
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
     private function addLibraryCondition(QueryBuilder $qb, User $user): void
     {
         $qb->leftJoin('w.readers', 'wu', 'WITH', 'wu.reader = :user')
