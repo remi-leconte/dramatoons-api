@@ -90,7 +90,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
-          BASE: ${{ github.event.pull_request.base.ref }}
           BRANCHE: ${{ github.event.pull_request.head.ref }}
         run: |
           dossier=_relecture
@@ -153,21 +152,22 @@ jobs:
               done
           } | jq -s . >"$dossier/tickets.json"
 
-          # Les PR ouvertes des autres dépôts pour ces tickets, vers la même release
+          # Les PR ouvertes des autres dépôts pour ces tickets, quelle que soit leur cible : l'API et le front livrent
+          # par release, l'extension par main
           jq -r '.[] | "\(.repository.name) \(.number)"' "$dossier/tickets.json" |
             while read -r depot numero; do
               [[ $depot == "${GITHUB_REPOSITORY#*/}" ]] && continue
               # Mêmes critères que le périmètre : une PR d'un fork ou d'un autre auteur n'est jamais lue comme PR liée
-              autre=$(gh pr list -R "$proprietaire/$depot" --base "$BASE" --state open \
+              autre=$(gh pr list -R "$proprietaire/$depot" --state open \
                 --json number,headRefName,isCrossRepository,author \
                 --jq "[.[] | select(.headRefName | test(\"^[a-z]+/#$numero-\"))
                   | select(.isCrossRepository == false and .author.login == \"remi-leconte\") | .number] | join(\" \")")
               if [[ $autre == *" "* ]]; then
-                echo "$depot : plusieurs PR ouvertes vers $BASE pour le ticket #$numero ($autre)" >>"$dossier/pr-liees-ambigues.txt"
+                echo "$depot : plusieurs PR ouvertes pour le ticket #$numero ($autre)" >>"$dossier/pr-liees-ambigues.txt"
                 continue
               fi
               if [[ -z $autre ]]; then
-                echo "$depot : aucune PR ouverte vers $BASE pour le ticket #$numero" >>"$dossier/pr-liees-manquantes.txt"
+                echo "$depot : aucune PR ouverte pour le ticket #$numero" >>"$dossier/pr-liees-manquantes.txt"
                 continue
               fi
               gh pr view "$autre" -R "$proprietaire/$depot" \
