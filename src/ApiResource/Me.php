@@ -7,7 +7,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Entity\User;
-use App\Repository\WebtoonUserRepository;
+use App\Repository\WebtoonRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -38,7 +38,7 @@ final class Me implements ProviderInterface
 
     public function __construct(
         private readonly Security $security,
-        private readonly WebtoonUserRepository $webtoonUserRepository
+        private readonly WebtoonRepository $webtoonRepository
     ) {}
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|null
@@ -50,10 +50,10 @@ final class Me implements ProviderInterface
             return null;
         }
 
-        $me = new self($this->security, $this->webtoonUserRepository);
+        $me = new self($this->security, $this->webtoonRepository);
         $me->id = $user->getId();
         $me->email = $user->getEmail();
-        $me->total = $this->webtoonUserRepository->countBookmark($user);
+        $me->total = $this->webtoonRepository->countLibrary($user);
         $me->username = $user->getUserIdentifier();
 
         return $me;

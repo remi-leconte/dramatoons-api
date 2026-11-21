@@ -95,6 +95,44 @@ final class WebtoonListingTest extends ApiTestCase
         $this->assertMemesWebtoons($donnees['bibliotheque'], $this->listing($donnees['lecteur'], 'ext'));
     }
 
+    #[TestDox('GET /me : total est le nombre de webtoons de la bibliothèque, celui que l’extension affiche')]
+    public function testTotalDeMe(): void
+    {
+        $donnees = $this->jeuDeDonnees();
+
+        $reponse = $this->client($donnees['lecteur'])->request('GET', '/me');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSame(count($donnees['bibliotheque']), $reponse->toArray()['total']);
+        $this->assertSame(count($this->listing($donnees['lecteur'], 'ext')), $reponse->toArray()['total']);
+    }
+
+    #[TestDox('GET /me : total d’un modérateur ou d’un administrateur ne compte que sa propre bibliothèque')]
+    public function testTotalDeMeModerateurEtAdministrateur(): void
+    {
+        $this->jeuDeDonnees();
+
+        foreach ([UserFactory::new()->moderateur()->create(), UserFactory::new()->administrateur()->create()] as $utilisateur) {
+            WebtoonUserFactory::createOne(['reader' => $utilisateur]);
+
+            $reponse = $this->client($utilisateur)->request('GET', '/me');
+
+            $this->assertResponseIsSuccessful();
+            $this->assertSame(1, $reponse->toArray()['total']);
+        }
+    }
+
+    #[TestDox('GET /me : total vaut 0 pour une bibliothèque vide, même si d’autres lecteurs suivent des webtoons')]
+    public function testTotalDeMeBibliothequeVide(): void
+    {
+        $this->jeuDeDonnees();
+
+        $reponse = $this->client(UserFactory::createOne())->request('GET', '/me');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSame(0, $reponse->toArray()['total']);
+    }
+
     #[TestDox('Bibliothèque et extension d’un modérateur : seulement ses suivis et ses webtoons dépubliés, comme un utilisateur')]
     public function testBibliothequeModerateur(): void
     {
