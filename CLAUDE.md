@@ -68,7 +68,7 @@ Conventions de Symfony et de Docker Compose :
 | Endpoint | Rôle |
 | --- | --- |
 | `POST /login` `{login, password}` | Renvoie `token`, `refresh_token`, `user {id, login, roles}` |
-| `POST /token/refresh` `{refresh_token}` | Nouveau JWT |
+| `POST /token/refresh` `{refresh_token}` | Renvoie un nouveau `token` et un nouveau `refresh_token` : le jeton de renouvellement est à usage unique (`single_use`), l'ancien n'est plus valable |
 | `GET /me` | `id`, `email`, `username`, `total` (nombre de webtoons de la bibliothèque, même condition que `mode=bibliotheque`) |
 | `/users` (CRUD) | Liste : admin. Détail : connecté (`login`, `role`, `created` ; le reste au propriétaire et à l'admin). `POST` = inscription. `PATCH` et `DELETE` : admin ou soi-même |
 | `POST /users/verify`, `/users/resend-verification` | Validation de l'email |
