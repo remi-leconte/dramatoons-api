@@ -161,8 +161,8 @@ jobs:
               cible=$BASE
               [[ $depot == dramatoons-browser-extension ]] && cible=main
               # Mêmes critères que le périmètre : une PR d'un fork ou d'un autre auteur n'est jamais lue comme PR liée.
-              # --limit lit toutes les PR ouvertes vers la cible (30 par défaut), sans quoi la PR du ticket, ou une
-              # seconde PR ambiguë, pourrait sortir de la liste
+              # --limit lit jusqu'à 1000 PR ouvertes vers la cible, au lieu des 30 premières : la PR du ticket, ou une
+              # seconde PR ambiguë, pourrait sinon sortir de la liste
               autre=$(gh pr list -R "$proprietaire/$depot" --base "$cible" --state open --limit 1000 \
                 --json number,headRefName,isCrossRepository,author \
                 --jq "[.[] | select(.headRefName | test(\"^[a-z]+/#$numero-\"))
