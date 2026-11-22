@@ -75,7 +75,6 @@ jobs:
           install -d -m 700 ~/.ssh
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           (umask 077 && printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy)
-          # La clé n'autorise côté serveur que le script de déploiement : seuls le composant et le commit sont transmis
           ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
             "deploy@$SSH_HOST" api "$GITHUB_SHA"
 
