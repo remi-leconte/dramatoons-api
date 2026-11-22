@@ -14,6 +14,9 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ApiResource]
 #[Get(
     uriTemplate: '/me',
+    // Sans « object », API Platform évalue l'expression avant le provider (étape pre_read) : un visiteur reçoit 401,
+    // et non le 404 d'un provider qui ne trouve personne
+    security: "is_granted('ROLE_USER')",
     provider: Me::class,
     normalizationContext: ['groups' => ['user:read']],
     openapi: new \ApiPlatform\OpenApi\Model\Operation(

@@ -9,7 +9,7 @@ use App\Tests\Factory\WebtoonUserFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 
-#[TestDox('Données visibles d’un compte (GET /users/{id}) selon qui le lit')]
+#[TestDox('Données visibles d’un compte (GET /users/{id} et GET /me) selon qui le lit')]
 final class DonneesVisiblesTest extends ApiTestCase
 {
     private const PUBLIQUES = ['login', 'role', 'created'];
@@ -32,6 +32,28 @@ final class DonneesVisiblesTest extends ApiTestCase
         $this->client()->request('GET', '/users/'.UserFactory::createOne()->getId());
 
         $this->assertResponseStatusCodeSame(401);
+    }
+
+    #[TestDox('GET /me : un visiteur non connecté reçoit 401, comme sur les autres endpoints')]
+    public function testMeVisiteurNonConnecte(): void
+    {
+        $this->client()->request('GET', '/me');
+
+        $this->assertResponseStatusCodeSame(401);
+    }
+
+    #[TestDox('GET /me : un utilisateur, un modérateur et un administrateur y lisent leur id, leur email et leur login')]
+    public function testMeParRole(): void
+    {
+        foreach ([UserFactory::createOne(), UserFactory::new()->moderateur()->create(), UserFactory::new()->administrateur()->create()] as $utilisateur) {
+            $reponse = $this->client($utilisateur)->request('GET', '/me');
+
+            $this->assertResponseIsSuccessful();
+            $donnees = $reponse->toArray();
+            $this->assertSame($utilisateur->getId(), $donnees['id']);
+            $this->assertSame($utilisateur->getEmail(), $donnees['email']);
+            $this->assertSame($utilisateur->getUserIdentifier(), $donnees['username']);
+        }
     }
 
     /**
