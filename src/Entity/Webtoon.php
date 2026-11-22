@@ -95,9 +95,9 @@ final class Webtoon
     #[Groups(['webtoon:read', 'webtoon:write:modo'])]
     private ?bool $publish = false;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['webtoon:read'])]
-    private ?string $image = 'defaut.jpg';
+    private ?string $image = null;
 
     #[Vich\UploadableField(mapping: 'webtoon_covers', fileNameProperty: 'image')]
     private ?File $imageFile = null;
