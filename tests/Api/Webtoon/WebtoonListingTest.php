@@ -133,6 +133,43 @@ final class WebtoonListingTest extends ApiTestCase
         $this->assertSame(0, $reponse->toArray()['total']);
     }
 
+    #[TestDox('GET /me : un utilisateur, un modérateur et un administrateur connectés reçoivent leur id, email, login et total')]
+    public function testContenuDeMeParRole(): void
+    {
+        foreach ([UserFactory::createOne(), UserFactory::new()->moderateur()->create(), UserFactory::new()->administrateur()->create()] as $utilisateur) {
+            WebtoonUserFactory::createOne(['reader' => $utilisateur]);
+
+            $reponse = $this->client($utilisateur)->request('GET', '/me');
+
+            $this->assertResponseIsSuccessful();
+            $donnees = $reponse->toArray();
+            $this->assertSame($utilisateur->getId(), $donnees['id']);
+            $this->assertSame($utilisateur->getEmail(), $donnees['email']);
+            $this->assertSame($utilisateur->getUserIdentifier(), $donnees['username']);
+            $this->assertSame(1, $donnees['total']);
+        }
+    }
+
+    #[TestDox('GET /me : un utilisateur dont l’email n’est pas encore vérifié reçoit sa réponse')]
+    public function testMeEmailNonVerifie(): void
+    {
+        $utilisateur = UserFactory::createOne(['verified' => false]);
+        WebtoonUserFactory::createOne(['reader' => $utilisateur]);
+
+        $reponse = $this->client($utilisateur)->request('GET', '/me');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSame(1, $reponse->toArray()['total']);
+    }
+
+    #[TestDox('GET /me : un visiteur non connecté reçoit 401, comme sur les autres endpoints')]
+    public function testMeVisiteurNonConnecte(): void
+    {
+        $this->client()->request('GET', '/me');
+
+        $this->assertResponseStatusCodeSame(401);
+    }
+
     #[TestDox('Bibliothèque et extension d’un modérateur : seulement ses suivis et ses webtoons dépubliés, comme un utilisateur')]
     public function testBibliothequeModerateur(): void
     {

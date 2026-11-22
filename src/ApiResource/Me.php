@@ -14,6 +14,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ApiResource]
 #[Get(
     uriTemplate: '/me',
+    security: "is_granted('ROLE_USER')",
     provider: Me::class,
     normalizationContext: ['groups' => ['user:read']],
     openapi: new \ApiPlatform\OpenApi\Model\Operation(
