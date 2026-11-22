@@ -36,7 +36,7 @@ final class WebtoonCreationTest extends ApiTestCase
         $this->assertSame(['Mon webtoon'], array_map(static fn ($titre) => $titre->getTitle(), $titres));
     }
 
-    #[TestDox('Un webtoon créé n’a pas de couverture : image est null (absente de la réponse), jusqu’au premier envoi')]
+    #[TestDox('Un webtoon créé n’a pas de couverture : image est null (ou absente de la réponse), jusqu’au premier envoi')]
     public function testWebtoonCreeSansCouverture(): void
     {
         $reponse = $this->post(UserFactory::createOne(), '/webtoons', ['title' => ['title' => 'Mon webtoon'], 'status' => 'ongoing']);
