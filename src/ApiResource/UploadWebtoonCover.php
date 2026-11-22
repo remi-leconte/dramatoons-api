@@ -10,6 +10,7 @@ use ApiPlatform\Validator\Exception\ValidationException;
 use App\Repository\WebtoonRepository;
 use App\Security\WebtoonVoter;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -23,12 +24,13 @@ use Vich\UploaderBundle\Handler\UploadHandler;
 #[Post(
     uriTemplate: '/webtoons/{id}/cover',
     security: "is_granted('ROLE_USER')",
+    status: 200,
     processor: UploadWebtoonCover::class,
     deserialize: false,
     openapi: new \ApiPlatform\OpenApi\Model\Operation(
         tags: ['Webtoon'],
         summary: 'Upload de la couverture d\'un webtoon',
-        description: 'Reçoit une image JPEG de 1 Mo au maximum (multipart/form-data, champ file), l\'enregistre sous un nouveau nom unique (l\'ancienne image est supprimée) et met à jour le champ image. Réponses : 401 si non connecté, 403 sans droit de modification, 422 si le fichier est absent, n\'est pas un JPEG ou dépasse 1 Mo (413 par le serveur web au-delà d\'environ 1 Mio).',
+        description: 'Reçoit une image JPEG de 1 Mo au maximum (multipart/form-data, champ file), l\'enregistre sous un nouveau nom unique (l\'ancienne image est supprimée) et met à jour le champ image. Réponse : 200 avec seulement le nouveau nom, {"image": "<nom>.jpg"}. Erreurs : 401 si non connecté, 403 sans droit de modification, 422 si le fichier est absent, n\'est pas un JPEG ou dépasse 1 Mo (413 par le serveur web au-delà d\'environ 1 Mio).',
         requestBody: new \ApiPlatform\OpenApi\Model\RequestBody(
             content: new \ArrayObject([
                 'multipart/form-data' => [
@@ -102,6 +104,7 @@ final class UploadWebtoonCover implements ProcessorInterface
         $this->em->flush();
         $this->cache->invalidateTags(['webtoons_list']);
 
-        return $webtoon;
+        // Réponse construite à la main : sérialisé, le webtoon exposerait ses suivis et toute donnée ajoutée plus tard
+        return new JsonResponse(['image' => $webtoon->getImage()]);
     }
 }
