@@ -9,7 +9,7 @@ use App\Tests\Factory\WebtoonUserFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 
-#[TestDox('Données visibles d’un compte (GET /users/{id}) selon qui le lit')]
+#[TestDox('Données visibles d’un compte (GET /users/{id} et GET /me) selon qui le lit')]
 final class DonneesVisiblesTest extends ApiTestCase
 {
     private const PUBLIQUES = ['login', 'role', 'created'];
