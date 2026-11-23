@@ -71,7 +71,7 @@ Conventions de Symfony et de Docker Compose :
 | `POST /token/refresh` `{refresh_token}` | Renvoie un nouveau `token` et un nouveau `refresh_token` : le jeton de renouvellement est à usage unique (`single_use`), l'ancien n'est plus valable |
 | `GET /me` | Connecté (sinon 401) : `id`, `email`, `username`, `total` (nombre de webtoons de la bibliothèque, même condition que `mode=bibliotheque`) |
 | `/users` (CRUD) | Liste : admin. Détail : connecté (`login`, `role`, `created` ; le reste au propriétaire et à l'admin). `POST` = inscription. `PATCH` et `DELETE` : admin ou soi-même |
-| `POST /users/verify`, `/users/resend-verification` | Validation de l'email |
+| `POST /users/verify`, `/users/resend-verification` | Validation de l'email. `resend-verification` répond pareil pour une adresse inconnue, déjà vérifiée ou non, et n'envoie un lien qu'à la dernière |
 | `POST /users/forgot-password`, `/users/reset-password` | Mot de passe oublié |
 | `/webtoons` (CRUD) | `GET /webtoons/{id}` : `WEBTOON_VIEW`. `POST` : connecté. `PATCH` et `DELETE` : `WEBTOON_EDIT`. `creator` (auteur du `POST`) et `image` (seulement via `/cover`) ne sont pas modifiables par le client ; `title` : un nouveau titre, ou un titre de ce webtoon |
 | `POST /webtoons/{id}/cover` | Connecté (sinon 401), puis `WEBTOON_EDIT`. Réponse 200 `{"image": "<nom>"}`, rien d'autre. Multipart `file`, JPEG ≤ 1 Mo (sinon 422, validé dans le processor ; au-delà d'environ 1 Mio, nginx refuse en 413), enregistré dans `public/upload/cover/` sous un nom unique à chaque envoi (`UniqidNamer` de VichUploader), l'ancienne image est supprimée |
