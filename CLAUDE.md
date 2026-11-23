@@ -49,6 +49,7 @@ Conventions de Symfony et de Docker Compose :
   - `UserProcessor` : hash du mot de passe (seulement s'il a été désérialisé, donc autorisé par les groupes), mail de vérification ;
   - `UserDeleteProcessor` : à la suppression d'un compte, supprime ses webtoons dépubliés suivis par personne d'autre que lui, attribue les autres au compte « Utilisateur supprimé » (`User::DELETED_USER_LOGIN`), qui lui-même ne peut pas être supprimé.
 - `src/Repository/WebtoonRepository.php` : requêtes du listing.
+- `src/Serializer/WebtoonNormalizer.php` : ajoute `canEdit` à chaque webtoon lu (groupe `webtoon:read`) : vrai seulement pour le créateur d'un webtoon dépublié que personne d'autre ne suit (`Webtoon::isEditableByCreator()`, partie « créateur » de `WEBTOON_EDIT`, sans l'accès des modérateurs, qui n'ont hors administration que les droits d'un utilisateur). Les suivis ne sont lus que pour le créateur d'un webtoon dépublié.
 - `src/Serializer/UserContextBuilder.php` : ajoute des groupes selon le rôle :
   - `webtoon:write:modo` (`publish`) à partir de MODO ;
   - `user:read:owner` (id, email, rôles, état, dates de modification et de dernière connexion), en lecture seulement, au propriétaire et à l'admin ;
@@ -62,7 +63,7 @@ Conventions de Symfony et de Docker Compose :
 - `src/Security/UserChecker.php` : refuse la connexion si `User.publish` est faux.
 - `src/Security/WebtoonVoter.php` (webtoon, titres, couverture) :
   - `WEBTOON_VIEW` : connecté, et webtoon publié, créé ou suivi (`isFollowedBy()`), ou MODO ;
-  - `WEBTOON_EDIT` : MODO, ou créateur d'un webtoon dépublié que personne d'autre ne suit.
+  - `WEBTOON_EDIT` : MODO, ou créateur d'un webtoon dépublié que personne d'autre ne suit (`Webtoon::isEditableByCreator()`, tous les suivis comptés, « Pas intéressé » compris).
 
 ## Endpoints
 | Endpoint | Rôle |

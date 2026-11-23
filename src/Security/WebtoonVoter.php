@@ -46,6 +46,6 @@ final class WebtoonVoter extends Voter
             return $subject->isPublish() || $isCreator || $subject->isFollowedBy($user);
         }
 
-        return $isCreator && !$subject->isPublish() && !$subject->isFollowedByOtherThanCreator();
+        return $subject->isEditableByCreator($user);
     }
 }

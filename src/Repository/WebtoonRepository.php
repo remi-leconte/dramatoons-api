@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Webtoon;
+use App\Entity\WebtoonUser;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -128,20 +129,33 @@ final class WebtoonRepository extends ServiceEntityRepository
 
         $fetched = $this->createQueryBuilder('w')
             ->where('w.id IN (:ids)') // ne respectera pas forcement l'ordre lors de la récupération
-            ->leftJoin('w.readers', 'wu', 'WITH', 'wu.reader = :user')
-            ->addSelect('wu')
+            ->setParameter('ids', $ids)
+            ->getQuery()
+            ->getResult();
+
+        // Le suivi de l'utilisateur est lu à part : chargé par une jointure filtrée, la collection readers
+        // ne contiendrait que lui, et Webtoon::isEditableByCreator() ne verrait pas les suivis des autres
+        /** @var list<WebtoonUser> $progressions */
+        $progressions = $this->getEntityManager()->createQueryBuilder()
+            ->select('wu')
+            ->from(WebtoonUser::class, 'wu')
+            ->where('wu.webtoon IN (:ids)')
+            ->andWhere('wu.reader = :user')
             ->setParameter('ids', $ids)
             ->setParameter('user', $user)
             ->getQuery()
             ->getResult();
+        $progressionParWebtoon = [];
+        foreach ($progressions as $progress) {
+            $progressionParWebtoon[$progress->getWebtoon()->getId()] = $progress;
+        }
 
-        // Rétablissement de l'ordre exact demandé par $ids & récupération de la progression
+        // Rétablissement de l'ordre exact demandé par $ids
         $indexed = [];
         /** @var Webtoon $w */
         foreach ($fetched as $w) {
-            $progress = $w->getReaders()->first() ?: null;
-            if ($progress) {
-                $w->setUserProgress($progress);
+            if (isset($progressionParWebtoon[$w->getId()])) {
+                $w->setUserProgress($progressionParWebtoon[$w->getId()]);
             }
             $indexed[$w->getId()] = $w;
         }

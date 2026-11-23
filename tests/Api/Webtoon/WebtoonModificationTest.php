@@ -181,4 +181,109 @@ final class WebtoonModificationTest extends ApiTestCase
 
         $this->assertResponseStatusCodeSame(403);
     }
+
+    private function canEdit(User $utilisateur, Webtoon $webtoon): bool
+    {
+        $reponse = $this->client($utilisateur)->request('GET', '/webtoons/'.$webtoon->getId());
+        $this->assertResponseIsSuccessful();
+
+        return $reponse->toArray()['canEdit'];
+    }
+
+    #[TestDox('canEdit : vrai pour le créateur d’un webtoon dépublié que personne d’autre ne suit, même s’il le suit lui-même')]
+    public function testCanEditCreateurWebtoonModifiable(): void
+    {
+        $createur = UserFactory::createOne();
+        $nonSuivi = WebtoonFactory::createOne(['creator' => $createur]);
+        $suiviParLui = WebtoonFactory::createOne(['creator' => $createur]);
+        WebtoonUserFactory::createOne(['webtoon' => $suiviParLui, 'reader' => $createur, 'state' => 'break']);
+
+        $this->assertTrue($this->canEdit($createur, $nonSuivi));
+        $this->assertTrue($this->canEdit($createur, $suiviParLui));
+    }
+
+    /**
+     * @param array<string, mixed> $suivi
+     */
+    #[DataProvider('suivisMinimaux')]
+    #[TestDox('canEdit : faux pour le créateur dès qu’un autre utilisateur suit son webtoon dépublié ($_dataName)')]
+    public function testCanEditCreateurBloqueParUnSuivi(array $suivi): void
+    {
+        $createur = UserFactory::createOne();
+        $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
+        WebtoonUserFactory::createOne(['webtoon' => $webtoon] + $suivi);
+
+        $this->assertFalse($this->canEdit($createur, $webtoon));
+    }
+
+    #[TestDox('canEdit : faux pour le créateur d’un webtoon publié, et pour un utilisateur, un modérateur ou un administrateur qui n’en est pas le créateur')]
+    public function testCanEditFaux(): void
+    {
+        $createur = UserFactory::createOne();
+        $this->assertFalse($this->canEdit($createur, WebtoonFactory::new()->publie()->create(['creator' => $createur])));
+
+        $webtoon = WebtoonFactory::new()->publie()->create();
+        foreach ([UserFactory::createOne(), UserFactory::new()->moderateur()->create(), UserFactory::new()->administrateur()->create()] as $utilisateur) {
+            $this->assertFalse($this->canEdit($utilisateur, $webtoon));
+        }
+
+        // Dépublié et suivi par personne : seule la condition « créateur » le rend non modifiable pour eux
+        $depublie = WebtoonFactory::createOne();
+        foreach ([UserFactory::new()->moderateur()->create(), UserFactory::new()->administrateur()->create()] as $utilisateur) {
+            $this->assertFalse($this->canEdit($utilisateur, $depublie));
+        }
+    }
+
+    #[TestDox('canEdit : vrai pour un modérateur ou un administrateur créateur d’un webtoon dépublié que personne d’autre ne suit')]
+    public function testCanEditModerateurOuAdministrateurCreateur(): void
+    {
+        foreach ([UserFactory::new()->moderateur()->create(), UserFactory::new()->administrateur()->create()] as $createur) {
+            $this->assertTrue($this->canEdit($createur, WebtoonFactory::createOne(['creator' => $createur])));
+        }
+    }
+
+    #[TestDox('canEdit des listings compte les suivis des autres : faux en bibliothèque et pour l’extension si un autre utilisateur suit le webtoon (« Pas intéressé »)')]
+    public function testCanEditDansLeListingAvecUnAutreSuivi(): void
+    {
+        $createur = UserFactory::createOne();
+        $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
+        WebtoonUserFactory::createOne(['webtoon' => $webtoon, 'reader' => $createur, 'state' => 'reading']);
+        WebtoonUserFactory::createOne(['webtoon' => $webtoon, 'state' => 'break']);
+
+        foreach (['bibliotheque', 'ext'] as $mode) {
+            $membres = $this->client($createur)->request('GET', '/webtoons?mode='.$mode)->toArray()['member'];
+
+            $this->assertSame([[$webtoon->getId(), false]], array_map(static fn (array $w): array => [$w['id'], $w['canEdit']], $membres), $mode);
+            $this->assertSame('reading', $membres[0]['userProgress']['state'], $mode);
+        }
+    }
+
+    #[TestDox('canEdit est aussi donné avec le webtoon d’un suivi (GET /webtoon_users/{id})')]
+    public function testCanEditDansUnSuivi(): void
+    {
+        $createur = UserFactory::createOne();
+        $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
+        $suivi = WebtoonUserFactory::createOne(['webtoon' => $webtoon, 'reader' => $createur, 'state' => 'reading']);
+
+        $lire = fn (): bool => $this->client($createur)->request('GET', '/webtoon_users/'.$suivi->getId())->toArray()['webtoon']['canEdit'];
+
+        $this->assertTrue($lire());
+        $this->assertResponseIsSuccessful();
+
+        WebtoonUserFactory::createOne(['webtoon' => $webtoon, 'state' => 'break']);
+        $this->assertFalse($lire());
+    }
+
+    #[TestDox('canEdit est aussi donné dans les listings, pour chaque webtoon')]
+    public function testCanEditDansLeListing(): void
+    {
+        $createur = UserFactory::createOne();
+        $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
+
+        $reponse = $this->client($createur)->request('GET', '/webtoons?mode=bibliotheque');
+
+        $this->assertResponseIsSuccessful();
+        $membres = $reponse->toArray()['member'];
+        $this->assertSame([[$webtoon->getId(), true]], array_map(static fn (array $w): array => [$w['id'], $w['canEdit']], $membres));
+    }
 }
