@@ -8,7 +8,6 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Repository\UserRepository;
 use App\Service\UserMailer;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -21,7 +20,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     openapi: new \ApiPlatform\OpenApi\Model\Operation(
         tags: ['User'],
         summary: 'Renvoie l\'e-mail de validation d\'adresse e-mail.',
-        description: 'Reçoit l\'e-mail du front, cherche l\'utilisateur, génère un nouveau token et renvoie l\'e-mail.'
+        description: 'Envoie un nouveau lien de vérification si l\'adresse a un compte dont l\'email n\'est pas encore vérifié. La réponse est la même dans tous les cas (adresse inconnue, déjà vérifiée ou non), pour ne pas révéler qu\'une adresse a un compte.'
     )
 )]
 final class UserResendVerification implements ProcessorInterface
@@ -43,15 +42,10 @@ final class UserResendVerification implements ProcessorInterface
     {
         $user = $this->userRepository->findOneBy(['email' => $data->getEmail()]);
 
-        if (!$user) {
-            return $data; 
+        // Même réponse pour un email inconnu ou déjà vérifié : elle ne doit pas révéler qu'une adresse a un compte
+        if ($user && !$user->isVerified()) {
+            $this->userMailer->sendVerificationEmail($user);
         }
-
-        if ($user->isVerified()) {
-            throw new BadRequestHttpException("Cette adresse email est déjà validée.");
-        }
-
-        $this->userMailer->sendVerificationEmail($user);
 
         return $data;
     }

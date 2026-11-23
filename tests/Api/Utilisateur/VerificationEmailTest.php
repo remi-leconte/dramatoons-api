@@ -114,7 +114,6 @@ final class VerificationEmailTest extends ApiTestCase
     #[TestDox('Redemander un lien répond pareil pour un email inconnu, non vérifié ou déjà vérifié ; seul l’email non vérifié reçoit un lien')]
     public function testNouveauLienEmailDejaVerifie(): void
     {
-        $this->markTestIncomplete('Écart : l’API répond 400 pour un email déjà vérifié, ce qui révèle que l’adresse a un compte (#103)');
         $nonVerifie = UserFactory::createOne(['verified' => false]);
         $verifie = UserFactory::createOne(['verified' => true]);
 
