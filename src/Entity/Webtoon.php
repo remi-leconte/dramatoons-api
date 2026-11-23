@@ -95,9 +95,9 @@ final class Webtoon
     #[Groups(['webtoon:read', 'webtoon:write:modo'])]
     private ?bool $publish = false;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['webtoon:read'])]
-    private ?string $image = 'defaut.jpg';
+    private ?string $image = null;
 
     #[Vich\UploadableField(mapping: 'webtoon_covers', fileNameProperty: 'image')]
     private ?File $imageFile = null;
@@ -365,6 +365,14 @@ final class Webtoon
     {
         $this->userProgress = $userProgress;
         return $this;
+    }
+
+    /**
+     * Droit de modification du créateur, hors administration (WebtoonVoter y ajoute les modérateurs)
+     */
+    public function isEditableByCreator(User $user): bool
+    {
+        return $this->creator?->getId() === $user->getId() && !$this->isPublish() && !$this->isFollowedByOtherThanCreator();
     }
 
     /**

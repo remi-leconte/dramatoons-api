@@ -77,9 +77,23 @@ final class WebtoonCouvertureTest extends ApiTestCase
 
         $image = $this->envoyer($createur, $webtoon, $this->jpeg())->toArray()['image'];
 
-        $this->assertResponseStatusCodeSame(201);
+        $this->assertResponseStatusCodeSame(200);
         $this->assertMatchesRegularExpression('/^[0-9a-f]+\.jpg$/', $image);
         $this->assertFileExists($this->chemin($image));
+    }
+
+    #[TestDox('La réponse ne contient que le nom de la nouvelle couverture, celui enregistré sur le webtoon')]
+    public function testReponseNeContientQueLImage(): void
+    {
+        $createur = UserFactory::createOne();
+        $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
+        WebtoonUserFactory::createOne(['webtoon' => $webtoon, 'reader' => $createur, 'rate' => 8]);
+
+        $reponse = $this->envoyer($createur, $webtoon, $this->jpeg());
+
+        $this->assertResponseStatusCodeSame(200);
+        $this->assertSame(['image'], array_keys($reponse->toArray()));
+        $this->assertSame(WebtoonFactory::repository()->find($webtoon->getId())->getImage(), $reponse->toArray()['image']);
     }
 
     #[TestDox('Une couverture envoyée juste après la création du webtoon est enregistrée, et un nouvel envoi aussitôt après la remplace sous un autre nom')]
@@ -89,11 +103,11 @@ final class WebtoonCouvertureTest extends ApiTestCase
         $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
 
         $premiere = $this->envoyer($createur, $webtoon, $this->jpeg(1000))->toArray()['image'];
-        $this->assertResponseStatusCodeSame(201);
+        $this->assertResponseStatusCodeSame(200);
         $this->assertSame(1000, filesize($this->chemin($premiere)));
 
         $seconde = $this->envoyer($createur, $webtoon, $this->jpeg(2000))->toArray()['image'];
-        $this->assertResponseStatusCodeSame(201);
+        $this->assertResponseStatusCodeSame(200);
         $this->assertNotSame($premiere, $seconde);
         $this->assertSame(2000, filesize($this->chemin($seconde)));
         $this->assertFileDoesNotExist($this->chemin($premiere));
@@ -107,7 +121,7 @@ final class WebtoonCouvertureTest extends ApiTestCase
         foreach (['Solo Leveling', 'Solo Leveling', '나 혼자만 레벨업', '進撃の巨人'] as $i => $titre) {
             $id = $this->post($createur, '/webtoons', ['title' => ['title' => $titre], 'status' => 'ongoing'])->toArray()['id'];
             $images[] = $this->envoyer($createur, WebtoonFactory::repository()->find($id), $this->jpeg(1000 + $i))->toArray()['image'];
-            $this->assertResponseStatusCodeSame(201);
+            $this->assertResponseStatusCodeSame(200);
         }
 
         $this->assertCount(4, array_unique($images));
@@ -139,7 +153,7 @@ final class WebtoonCouvertureTest extends ApiTestCase
     {
         $this->envoyer(UserFactory::new()->moderateur()->create(), WebtoonFactory::new()->publie()->create(), $this->jpeg());
 
-        $this->assertResponseStatusCodeSame(201);
+        $this->assertResponseStatusCodeSame(200);
     }
 
     #[TestDox('Une image PNG est refusée : 422')]
@@ -210,7 +224,7 @@ final class WebtoonCouvertureTest extends ApiTestCase
     {
         $this->envoyer(UserFactory::new()->administrateur()->create(), WebtoonFactory::new()->publie()->create(), $this->jpeg());
 
-        $this->assertResponseStatusCodeSame(201);
+        $this->assertResponseStatusCodeSame(200);
     }
 
     #[TestDox('Un JPEG d’exactement 1 Mo (1 000 000 octets) est accepté')]
@@ -220,6 +234,6 @@ final class WebtoonCouvertureTest extends ApiTestCase
 
         $this->envoyer($createur, WebtoonFactory::createOne(['creator' => $createur]), $this->jpeg(1_000_000));
 
-        $this->assertResponseStatusCodeSame(201);
+        $this->assertResponseStatusCodeSame(200);
     }
 }

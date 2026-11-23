@@ -47,6 +47,7 @@ final class WebtoonUserProcessor implements ProcessorInterface
             throw new ValidationException($violations);
         }
 
+        $data->setUpdated(new \DateTimeImmutable());
         $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
         $this->cache->invalidateTags(['user_' . $user->getId()]);

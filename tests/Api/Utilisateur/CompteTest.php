@@ -133,6 +133,9 @@ final class CompteTest extends ApiTestCase
         $this->listing($utilisateur, 'catalogue');
         $this->post($utilisateur, '/webtoons', ['title' => ['title' => 'Mon webtoon'], 'status' => 'ongoing']);
         $this->assertResponseStatusCodeSame(201);
+
+        $this->client($utilisateur)->request('GET', '/me');
+        $this->assertResponseIsSuccessful();
     }
 
     #[TestDox('La session dure 1 h ; chaque renouvellement donne un nouveau jeton de renouvellement, valable 30 jours à partir de ce renouvellement')]

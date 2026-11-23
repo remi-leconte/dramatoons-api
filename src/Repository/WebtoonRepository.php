@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Webtoon;
+use App\Entity\WebtoonUser;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -101,6 +102,11 @@ final class WebtoonRepository extends ServiceEntityRepository
                                 ->addSelect('wu_user.rate AS HIDDEN user_rate')
                                 ->setParameter('user', $user)
                                 ->orderBy('user_rate', $params['sortOrder']),
+            // La bibliothèque (et l'extension) joint le suivi de l'utilisateur sous l'alias wu ; sans date de suivi,
+            // le webtoon est rangé par sa propre date de modification
+            'user_updated' => \in_array($params['mode'], ['bibliotheque', 'ext'], true)
+                ? $qb->addSelect('COALESCE(wu.updated, w.updated) AS HIDDEN sort_user_updated')->orderBy('sort_user_updated', $params['sortOrder'])
+                : $qb->orderBy('w.created', $params['sortOrder']),
             default => $qb->orderBy('w.created', $params['sortOrder']),
         };
         // Départage les égalités (statut, publication…) : sans ordre total, MariaDB peut ranger
@@ -128,20 +134,33 @@ final class WebtoonRepository extends ServiceEntityRepository
 
         $fetched = $this->createQueryBuilder('w')
             ->where('w.id IN (:ids)') // ne respectera pas forcement l'ordre lors de la récupération
-            ->leftJoin('w.readers', 'wu', 'WITH', 'wu.reader = :user')
-            ->addSelect('wu')
+            ->setParameter('ids', $ids)
+            ->getQuery()
+            ->getResult();
+
+        // Le suivi de l'utilisateur est lu à part : chargé par une jointure filtrée, la collection readers
+        // ne contiendrait que lui, et Webtoon::isEditableByCreator() ne verrait pas les suivis des autres
+        /** @var list<WebtoonUser> $progressions */
+        $progressions = $this->getEntityManager()->createQueryBuilder()
+            ->select('wu')
+            ->from(WebtoonUser::class, 'wu')
+            ->where('wu.webtoon IN (:ids)')
+            ->andWhere('wu.reader = :user')
             ->setParameter('ids', $ids)
             ->setParameter('user', $user)
             ->getQuery()
             ->getResult();
+        $progressionParWebtoon = [];
+        foreach ($progressions as $progress) {
+            $progressionParWebtoon[$progress->getWebtoon()->getId()] = $progress;
+        }
 
-        // Rétablissement de l'ordre exact demandé par $ids & récupération de la progression
+        // Rétablissement de l'ordre exact demandé par $ids
         $indexed = [];
         /** @var Webtoon $w */
         foreach ($fetched as $w) {
-            $progress = $w->getReaders()->first() ?: null;
-            if ($progress) {
-                $w->setUserProgress($progress);
+            if (isset($progressionParWebtoon[$w->getId()])) {
+                $w->setUserProgress($progressionParWebtoon[$w->getId()]);
             }
             $indexed[$w->getId()] = $w;
         }
@@ -154,6 +173,17 @@ final class WebtoonRepository extends ServiceEntityRepository
         }
 
         return $ordered;
+    }
+
+    /**
+     * Même condition que le listing de la bibliothèque (et de l'extension).
+     */
+    public function countLibrary(User $user): int
+    {
+        $qb = $this->createQueryBuilder('w')->select('COUNT(DISTINCT w.id)');
+        $this->addLibraryCondition($qb, $user);
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
     private function addLibraryCondition(QueryBuilder $qb, User $user): void

@@ -106,3 +106,29 @@ jobs:
           (umask 077 && printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy)
           ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
             "deploy@$SSH_HOST" api "$VERSION"
+
+      # Après le déploiement, sans pouvoir le faire échouer : un statut se corrige à la main, alors qu'un job
+      # rouge pousserait à relancer la production, avec une nouvelle approbation
+      - name: Statuts des tickets
+        continue-on-error: true
+        shell: bash
+        env:
+          # Le GITHUB_TOKEN ne peut pas écrire dans un projet d'utilisateur
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJET: "PVT_kwHOAjbdoM4BgsYh"
+          CHAMP_STATUT: "PVTSSF_lAHOAjbdoM4BgsYhzhfq9h4"
+          STATUT_DONE: "98236657"
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          # @me : le projet appartient au compte du jeton
+          tickets=$(gh project item-list 4 --owner "@me" --format json -L 1000 \
+            --jq ".items[] | select(.content.repository == \"$GITHUB_REPOSITORY\" and .release == \"$VERSION\" and .status == \"Ready to Deploy\") | \"\\(.id) \\(.content.number)\"")
+          if [[ -z $tickets ]]; then
+            echo "::warning::Aucun ticket $VERSION en Ready to Deploy (déjà en Done, relance, ou état ou champ renommé) : à vérifier à la main"
+            exit 0
+          fi
+          while read -r item numero; do
+            gh project item-edit --project-id "$PROJET" --id "$item" --field-id "$CHAMP_STATUT" \
+              --single-select-option-id "$STATUT_DONE"
+            echo "Ticket #$numero : Done"
+          done <<<"$tickets"
