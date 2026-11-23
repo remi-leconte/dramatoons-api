@@ -74,8 +74,7 @@ Chaque fusion dans une branche de release publie l'image Docker et met à jour l
 | --- | --- |
 | [dramatoons-api](https://github.com/remi-leconte/dramatoons-api) | API REST (ce dépôt) |
 | [dramatoons-front](https://github.com/remi-leconte/dramatoons-front) | Site web (Vue 3, TypeScript) |
-| [dramatoons-extension-chromium](https://github.com/remi-leconte/dramatoons-extension-chromium) | Extension pour les navigateurs Chromium |
-| [dramatoons-extension-firefox](https://github.com/remi-leconte/dramatoons-extension-firefox) | Extension Firefox |
+| [dramatoons-browser-extension](https://github.com/remi-leconte/dramatoons-browser-extension) | Extension pour Firefox et les navigateurs Chromium |
 | [dramatoons-workspace](https://github.com/remi-leconte/dramatoons-workspace) | Espace de travail commun : méthode de travail avec Claude Code, règles métier, workflow |
 
 ## Licence
