@@ -368,6 +368,14 @@ final class Webtoon
     }
 
     /**
+     * Droit de modification du créateur, hors administration (WebtoonVoter y ajoute les modérateurs)
+     */
+    public function isEditableByCreator(User $user): bool
+    {
+        return $this->creator?->getId() === $user->getId() && !$this->isPublish() && !$this->isFollowedByOtherThanCreator();
+    }
+
+    /**
      * Vrai si au moins un utilisateur autre que le créateur suit le webtoon :
      * un webtoonUser dont rate, state ou bookmark est renseigné.
      */
