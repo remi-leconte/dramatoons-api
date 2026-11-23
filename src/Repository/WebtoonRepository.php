@@ -102,6 +102,11 @@ final class WebtoonRepository extends ServiceEntityRepository
                                 ->addSelect('wu_user.rate AS HIDDEN user_rate')
                                 ->setParameter('user', $user)
                                 ->orderBy('user_rate', $params['sortOrder']),
+            // La bibliothèque (et l'extension) joint le suivi de l'utilisateur sous l'alias wu ; sans date de suivi,
+            // le webtoon est rangé par sa propre date de modification
+            'user_updated' => \in_array($params['mode'], ['bibliotheque', 'ext'], true)
+                ? $qb->addSelect('COALESCE(wu.updated, w.updated) AS HIDDEN sort_user_updated')->orderBy('sort_user_updated', $params['sortOrder'])
+                : $qb->orderBy('w.created', $params['sortOrder']),
             default => $qb->orderBy('w.created', $params['sortOrder']),
         };
         // Départage les égalités (statut, publication…) : sans ordre total, MariaDB peut ranger

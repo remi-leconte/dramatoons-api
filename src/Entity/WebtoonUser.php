@@ -90,6 +90,11 @@ final class WebtoonUser
     #[Groups(['webtoon:read', 'webtoon_user:read', 'webtoon_user:write'])]
     private ?int $bookmark = null;
 
+    // Dernière création ou modification par l'API (tri « Modification » de la bibliothèque) ; null pour un suivi
+    // antérieur à ce champ
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $updated = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -151,6 +156,18 @@ final class WebtoonUser
     public function setBookmark(?int $bookmark): static
     {
         $this->bookmark = $bookmark;
+
+        return $this;
+    }
+
+    public function getUpdated(): ?\DateTimeImmutable
+    {
+        return $this->updated;
+    }
+
+    public function setUpdated(?\DateTimeImmutable $updated): static
+    {
+        $this->updated = $updated;
 
         return $this;
     }
