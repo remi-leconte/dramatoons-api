@@ -2,6 +2,7 @@
 
 namespace App\Tests\Api\Webtoon;
 
+use App\Entity\User;
 use App\Tests\Api\ApiTestCase;
 use App\Tests\Factory\UserFactory;
 use App\Tests\Factory\WebtoonFactory;
@@ -273,6 +274,98 @@ final class WebtoonListingTest extends ApiTestCase
 
             $this->assertSame($ids, $obtenus, $colonne);
         }
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function bibliothequeParModification(User $lecteur): array
+    {
+        $reponse = $this->client($lecteur)->request('GET', '/webtoons', [
+            'query' => ['mode' => 'bibliotheque', 'pagination' => 'false', 'sortBy' => 'user_updated', 'sortOrder' => 'desc'],
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        return array_map(static fn (array $webtoon): int => $webtoon['id'], $reponse->toArray()['member']);
+    }
+
+    #[TestDox('Bibliothèque, tri « Modification » (user_updated) : le suivi modifié en dernier passe en tête')]
+    public function testTriModificationDuSuivi(): void
+    {
+        $lecteur = UserFactory::createOne();
+        $ancien = WebtoonFactory::new()->publie()->create();
+        $recent = WebtoonFactory::new()->publie()->create();
+        $suiviAncien = WebtoonUserFactory::createOne(['reader' => $lecteur, 'webtoon' => $ancien, 'state' => 'reading', 'updated' => new \DateTimeImmutable('-2 days')]);
+        WebtoonUserFactory::createOne(['reader' => $lecteur, 'webtoon' => $recent, 'state' => 'reading', 'updated' => new \DateTimeImmutable('-1 day')]);
+        $this->assertSame([$recent->getId(), $ancien->getId()], $this->bibliothequeParModification($lecteur));
+
+        $this->patch($lecteur, '/webtoon_users/'.$suiviAncien->getId(), ['rate' => 8]);
+        $this->assertResponseIsSuccessful();
+
+        $this->assertSame([$ancien->getId(), $recent->getId()], $this->bibliothequeParModification($lecteur));
+    }
+
+    #[TestDox('Bibliothèque, tri « Modification » : un suivi créé passe en tête ; sans date de suivi (webtoon créé sans suivi, ancien suivi), le webtoon est rangé par sa propre date de modification')]
+    public function testTriModificationSansDateDeSuivi(): void
+    {
+        $lecteur = UserFactory::createOne();
+        // Créés dans un ordre qui contredit l'ordre attendu : ni l'id ni la date de création ne suffisent à le donner
+        $ancienSuivi = WebtoonFactory::new()->publie()->create(['updated' => new \DateTimeImmutable('-1 day')]);
+        WebtoonUserFactory::createOne(['reader' => $lecteur, 'webtoon' => $ancienSuivi, 'state' => 'reading', 'updated' => null]);
+        $creeSansSuivi = WebtoonFactory::createOne(['creator' => $lecteur, 'updated' => new \DateTimeImmutable('-3 days')]);
+        $suivi = WebtoonFactory::new()->publie()->create(['updated' => new \DateTimeImmutable('-5 days')]);
+
+        $this->post($lecteur, '/webtoon_users', ['webtoon' => '/webtoons/'.$suivi->getId(), 'state' => 'reading']);
+        $this->assertResponseStatusCodeSame(201);
+
+        $this->assertSame([$suivi->getId(), $ancienSuivi->getId(), $creeSansSuivi->getId()], $this->bibliothequeParModification($lecteur));
+    }
+
+    #[TestDox('Extension, tri user_updated : rangé comme la bibliothèque, par dernière modification du suivi')]
+    public function testTriModificationExtension(): void
+    {
+        $lecteur = UserFactory::createOne();
+        $premier = WebtoonFactory::new()->publie()->create();
+        $second = WebtoonFactory::new()->publie()->create();
+        WebtoonUserFactory::createOne(['reader' => $lecteur, 'webtoon' => $premier, 'state' => 'reading', 'updated' => new \DateTimeImmutable('-1 day')]);
+        WebtoonUserFactory::createOne(['reader' => $lecteur, 'webtoon' => $second, 'state' => 'reading', 'updated' => new \DateTimeImmutable('-2 days')]);
+
+        $reponse = $this->client($lecteur)->request('GET', '/webtoons', [
+            'query' => ['mode' => 'ext', 'pagination' => 'false', 'sortBy' => 'user_updated', 'sortOrder' => 'desc'],
+        ]);
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSame([$premier->getId(), $second->getId()], array_map(static fn (array $w): int => $w['id'], $reponse->toArray()['member']));
+    }
+
+    #[TestDox('Catalogue, tri user_updated : sans suivi joint, rangé comme added, par date de création du webtoon')]
+    public function testTriModificationCatalogue(): void
+    {
+        $lecteur = UserFactory::createOne();
+        $ancien = WebtoonFactory::new()->publie()->create(['created' => new \DateTimeImmutable('-2 days')]);
+        $recent = WebtoonFactory::new()->publie()->create(['created' => new \DateTimeImmutable('-1 day')]);
+        WebtoonUserFactory::createOne(['reader' => $lecteur, 'webtoon' => $ancien, 'state' => 'reading', 'updated' => new \DateTimeImmutable()]);
+        WebtoonUserFactory::createOne(['reader' => $lecteur, 'webtoon' => $recent, 'state' => 'reading', 'updated' => new \DateTimeImmutable('-3 days')]);
+
+        $reponse = $this->client($lecteur)->request('GET', '/webtoons', [
+            'query' => ['mode' => 'catalogue', 'pagination' => 'false', 'sortBy' => 'user_updated', 'sortOrder' => 'desc'],
+        ]);
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSame([$recent->getId(), $ancien->getId()], array_map(static fn (array $w): int => $w['id'], $reponse->toArray()['member']));
+    }
+
+    #[TestDox('Bibliothèque, tri « Modification » : seuls les suivis de l’utilisateur comptent, pas ceux des autres')]
+    public function testTriModificationSuivisDesAutres(): void
+    {
+        $lecteur = UserFactory::createOne();
+        $premier = WebtoonFactory::new()->publie()->create();
+        $second = WebtoonFactory::new()->publie()->create();
+        WebtoonUserFactory::createOne(['reader' => $lecteur, 'webtoon' => $premier, 'state' => 'reading', 'updated' => new \DateTimeImmutable('-1 day')]);
+        WebtoonUserFactory::createOne(['reader' => $lecteur, 'webtoon' => $second, 'state' => 'reading', 'updated' => new \DateTimeImmutable('-2 days')]);
+        WebtoonUserFactory::createOne(['webtoon' => $second, 'state' => 'pause', 'updated' => new \DateTimeImmutable()]);
+
+        $this->assertSame([$premier->getId(), $second->getId()], $this->bibliothequeParModification($lecteur));
     }
 
     #[TestDox('Chaque webtoon porte le suivi de l’utilisateur connecté, jamais celui d’un autre')]
