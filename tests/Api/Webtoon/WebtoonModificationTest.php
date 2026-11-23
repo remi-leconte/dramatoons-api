@@ -242,6 +242,22 @@ final class WebtoonModificationTest extends ApiTestCase
         }
     }
 
+    #[TestDox('canEdit des listings compte les suivis des autres : faux en bibliothèque et pour l’extension si un autre utilisateur suit le webtoon (« Pas intéressé »)')]
+    public function testCanEditDansLeListingAvecUnAutreSuivi(): void
+    {
+        $createur = UserFactory::createOne();
+        $webtoon = WebtoonFactory::createOne(['creator' => $createur]);
+        WebtoonUserFactory::createOne(['webtoon' => $webtoon, 'reader' => $createur, 'state' => 'reading']);
+        WebtoonUserFactory::createOne(['webtoon' => $webtoon, 'state' => 'break']);
+
+        foreach (['bibliotheque', 'ext'] as $mode) {
+            $membres = $this->client($createur)->request('GET', '/webtoons?mode='.$mode)->toArray()['member'];
+
+            $this->assertSame([[$webtoon->getId(), false]], array_map(static fn (array $w): array => [$w['id'], $w['canEdit']], $membres), $mode);
+            $this->assertSame('reading', $membres[0]['userProgress']['state'], $mode);
+        }
+    }
+
     #[TestDox('canEdit est aussi donné avec le webtoon d’un suivi (GET /webtoon_users/{id})')]
     public function testCanEditDansUnSuivi(): void
     {
